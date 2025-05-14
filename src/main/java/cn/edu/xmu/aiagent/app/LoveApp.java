@@ -1,14 +1,17 @@
 package cn.edu.xmu.aiagent.app;
 
 import cn.edu.xmu.aiagent.advisor.MyLoggerAdvisor;
-import cn.edu.xmu.aiagent.advisor.ReReadingAdvisor;
 import cn.edu.xmu.aiagent.chatMemory.FileBasedChatMemory;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,6 +24,11 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 public class LoveApp {
 
     private final ChatClient chatClient;
+    @Resource
+    private VectorStore loveAppVectorStore;
+    @Resource
+    private Advisor loveAppRagCloudAdvisor;
+
 
     private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。" +
             "围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；" +
@@ -39,9 +47,9 @@ public class LoveApp {
                 .defaultAdvisors(
                         new MessageChatMemoryAdvisor(chatMemory),
                         // 自定义的日志 advisor
-                        new MyLoggerAdvisor(),
-                        // 自定义AI推理能力增强的 advisor
-                        new ReReadingAdvisor()
+                        new MyLoggerAdvisor()
+//                        // 自定义AI推理能力增强的 advisor
+//                        new ReReadingAdvisor()
                 )
                 .build();
     }
@@ -61,10 +69,13 @@ public class LoveApp {
                 .chatResponse();
 
         String content = chatResponse.getResult().getOutput().getText();
-        log.info(content);
+//        log.info(content);
         return content;
     }
 
+    /**
+     * 恋爱报告类
+     */
     record LoveReport(String title, List<String> suggestions){}
 
     /**
@@ -82,7 +93,42 @@ public class LoveApp {
                 .call()
                 .entity(LoveReport.class);
 
-        log.info("LoveReport: {}", entity);
         return entity;
+    }
+
+    /**
+     * 与AI进行对话，应用RAG知识库问答（检索本地知识库）
+     * @param chatId 会话ID
+     * @param message 用户输入的消息
+     * @return
+     */
+    public String doChatWithRag(String chatId, String message) {
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+                .call()
+                .chatResponse();
+
+        return chatResponse.getResult().getOutput().getText();
+    }
+
+    /**
+     * 与AI进行对话，应用RAG检索增强服务（云端知识库）
+     * @param chatId 会话ID
+     * @param message 用户输入的消息
+     * @return
+     */
+    public String doChatWithCloudRag(String chatId, String message) {
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                // 应用增强检索服务(云知识库)
+                .advisors(loveAppRagCloudAdvisor)
+                .call()
+                .chatResponse();
+        return chatResponse.getResult().getOutput().getText();
     }
 }
