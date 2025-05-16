@@ -2,6 +2,8 @@ package cn.edu.xmu.aiagent.app;
 
 import cn.edu.xmu.aiagent.advisor.MyLoggerAdvisor;
 import cn.edu.xmu.aiagent.chatMemory.FileBasedChatMemory;
+import cn.edu.xmu.aiagent.rag.LoveAppRagCustomAdvisorFactory;
+import cn.edu.xmu.aiagent.rag.QueryRewriter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -33,6 +35,9 @@ public class LoveApp {
     // pgvector 向量数据库
     @Resource
     private VectorStore pgVectorStore;
+    // 查询重写器
+    @Resource
+    private QueryRewriter queryRewriter;
 
 
     private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。" +
@@ -66,6 +71,7 @@ public class LoveApp {
      * @return
      */
     public String doChat(String chatId, String message) {
+
         ChatResponse chatResponse = chatClient.prompt()
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
@@ -106,16 +112,19 @@ public class LoveApp {
      * @return
      */
     public String doChatWithRag(String chatId, String message) {
+        String reWrite = queryRewriter.doQueryReWrite(message);
         ChatResponse chatResponse = chatClient.prompt()
-                .user(message)
+                .user(reWrite)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
 //                // 应用知识库问答（内存向量数据库）
 //                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
 //                // 应用增强检索服务(云知识库)
 //                .advisors(loveAppRagCloudAdvisor)
-                  // 应用知识库问答（pgvector 向量数据库）
-                .advisors(new QuestionAnswerAdvisor(pgVectorStore))
+//                  // 应用知识库问答（pgvector 向量数据库）
+//                .advisors(new QuestionAnswerAdvisor(pgVectorStore))
+                // 自定义RAG检索增强服务（文档查询器+上下文增强器）
+                .advisors(LoveAppRagCustomAdvisorFactory.createRagCustomAdvisor(loveAppVectorStore, "单身"))
                 .call()
                 .chatResponse();
 
