@@ -24,10 +24,15 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 public class LoveApp {
 
     private final ChatClient chatClient;
+    // 内存向量数据库
     @Resource
     private VectorStore loveAppVectorStore;
+    // 云知识库
     @Resource
     private Advisor loveAppRagCloudAdvisor;
+    // pgvector 向量数据库
+    @Resource
+    private VectorStore pgVectorStore;
 
 
     private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。" +
@@ -85,15 +90,13 @@ public class LoveApp {
      * @return
      */
     public LoveReport doChatWithReport(String chatId, String message) {
-        LoveReport entity = chatClient.prompt()
+        return chatClient.prompt()
                 .system(SYSTEM_PROMPT + "每次对话后都要生成恋爱结果，标题为{用户名}的恋爱报告，内容为建议列表")
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
                 .call()
                 .entity(LoveReport.class);
-
-        return entity;
     }
 
     /**
@@ -107,28 +110,16 @@ public class LoveApp {
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
-                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+//                // 应用知识库问答（内存向量数据库）
+//                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+//                // 应用增强检索服务(云知识库)
+//                .advisors(loveAppRagCloudAdvisor)
+                  // 应用知识库问答（pgvector 向量数据库）
+                .advisors(new QuestionAnswerAdvisor(pgVectorStore))
                 .call()
                 .chatResponse();
 
         return chatResponse.getResult().getOutput().getText();
     }
 
-    /**
-     * 与AI进行对话，应用RAG检索增强服务（云端知识库）
-     * @param chatId 会话ID
-     * @param message 用户输入的消息
-     * @return
-     */
-    public String doChatWithCloudRag(String chatId, String message) {
-        ChatResponse chatResponse = chatClient.prompt()
-                .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
-                // 应用增强检索服务(云知识库)
-                .advisors(loveAppRagCloudAdvisor)
-                .call()
-                .chatResponse();
-        return chatResponse.getResult().getOutput().getText();
-    }
 }

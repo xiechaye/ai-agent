@@ -22,7 +22,7 @@ public class LoveAppRagCloudAdvisorConfig {
     private String dashscopeApiKey;
 
     @Bean
-    public Advisor LoveAppRagCloudAdvisor() {
+    public Advisor loveAppRagCloudAdvisor() {
         DashScopeApi dashScopeApi = new DashScopeApi(dashscopeApiKey);
         final String KNOWLEDGE_INDEX_NAME = "恋爱大师";
 

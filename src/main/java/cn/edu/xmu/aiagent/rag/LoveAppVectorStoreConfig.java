@@ -23,7 +23,7 @@ public class LoveAppVectorStoreConfig {
     private LoveAppDocumentLoader loveAppDocumentLoader;
 
     @Bean
-    public VectorStore LoveAppVectorStore(EmbeddingModel dashscopeEmbeddingModel) {
+    public VectorStore loveAppVectorStore(EmbeddingModel dashscopeEmbeddingModel) {
         // 加载文档
         List<Document> documents = loveAppDocumentLoader.loadDocuments();
 
