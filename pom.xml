@@ -91,6 +91,24 @@
             <version>1.19.1</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.itextpdf/itext-core -->
+<!--        pdf生成工具-->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itext-core</artifactId>
+            <version>9.1.0</version>
+            <type>pom</type>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.itextpdf/font-asian -->
+<!--        字体样式-->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>font-asian</artifactId>
+            <version>9.1.0</version>
+            <scope>test</scope>
+        </dependency>
+
+
         <!--&lt;!&ndash;        pgsql向量数据库相关依赖&ndash;&gt;-->
 <!--        <dependency>-->
 <!--            <groupId>org.springframework.boot</groupId>-->
