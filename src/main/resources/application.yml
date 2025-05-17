@@ -14,6 +14,10 @@ spring:
       chat:
         model: deepseek-r1:8b
 
+#联网搜索引入
+search-api:
+  api-key: api-key
+
 server:
   port: 8123
   servlet:
