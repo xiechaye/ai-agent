@@ -84,7 +84,14 @@
             <artifactId>spring-ai-markdown-document-reader</artifactId>
             <version>1.0.0-M6</version>
         </dependency>
-<!--&lt;!&ndash;        pgsql向量数据库相关依赖&ndash;&gt;-->
+<!--        网页抓取-->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.19.1</version>
+        </dependency>
+
+        <!--&lt;!&ndash;        pgsql向量数据库相关依赖&ndash;&gt;-->
 <!--        <dependency>-->
 <!--            <groupId>org.springframework.boot</groupId>-->
 <!--            <artifactId>spring-boot-starter-jdbc</artifactId>-->
