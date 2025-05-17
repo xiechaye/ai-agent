@@ -3,24 +3,7 @@ spring:
     name: ai-agent
   profiles:
     active: local
-  datasource:
-    url: jdbc:postgresql://localhost:5432/aiagent
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      connection-timeout: 20000
-      maximum-pool-size: 5
-      minimum-idle: 1
-      idle-timeout: 300000
-      max-lifetime: 1200000
   ai:
-    vectorstore:
-      pgvector:
-      index-type: HNSW
-      distance-type: COSINE_DISTANCE
-      dimensions: 1536
-      max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
     dashscope:
       api-key: ${AI_DASHSCOPE_API_KEY}
       chat:

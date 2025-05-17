@@ -10,7 +10,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import static org.springframework.ai.vectorstore.pgvector.PgVectorStore.PgDistanceType.COSINE_DISTANCE;
 import static org.springframework.ai.vectorstore.pgvector.PgVectorStore.PgIndexType.HNSW;
 
-@Configuration
+/**
+ * PgVectorStore 配置类
+ *
+ * @author Suave
+ */
+// 引入数据库解开注释
+//@Configuration
 public class LoveAppPgVectorConfig {
 
     /**
@@ -19,7 +25,7 @@ public class LoveAppPgVectorConfig {
      * @param dashscopeEmbeddingModel
      * @return
      */
-    @Bean
+//    @Bean
     public VectorStore pgVectorStore(JdbcTemplate jdbcTemplate, EmbeddingModel dashscopeEmbeddingModel) {
         return PgVectorStore.builder(jdbcTemplate, dashscopeEmbeddingModel)
                 .dimensions(1536)                    // Optional: defaults to model dimensions or 1536

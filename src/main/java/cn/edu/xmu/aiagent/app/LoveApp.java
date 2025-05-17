@@ -33,8 +33,8 @@ public class LoveApp {
     @Resource
     private Advisor loveAppRagCloudAdvisor;
     // pgvector 向量数据库
-    @Resource
-    private VectorStore pgVectorStore;
+//    @Resource
+//    private VectorStore pgVectorStore;
     // 查询重写器
     @Resource
     private QueryRewriter queryRewriter;
