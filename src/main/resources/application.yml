@@ -4,6 +4,10 @@ spring:
   profiles:
     active: local
   ai:
+    mcp:
+      client:
+        stdio:
+          servers-configuration: classpath:mcp-servers.json
     dashscope:
       api-key: ${AI_DASHSCOPE_API_KEY}
       chat:
@@ -13,6 +17,7 @@ spring:
       base-url: http://localhost:11434
       chat:
         model: deepseek-r1:8b
+
 
 #联网搜索引入
 search-api:

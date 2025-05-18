@@ -7,6 +7,7 @@ target/
 application-local.yml
 application-prod.yml
 tmp
+mcp-servers-local.json
 
 ### STS ###
 .apt_generated

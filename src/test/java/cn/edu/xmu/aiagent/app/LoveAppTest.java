@@ -94,4 +94,12 @@ class LoveAppTest {
         Assertions.assertNotNull(answer);
     }
 
+    // 测试mcp服务调用
+    @Test
+    void doChatWithToolsAndMcp() {
+        String uuid = UUID.randomUUID().toString();
+        String message = "我的另一半在厦门大学翔安校区，请帮我找到5公里范围内适合约会的地点。";
+        String content = loveApp.doChatWithToolsAndMcp(uuid, message);
+        Assertions.assertNotNull(content);
+    }
 }

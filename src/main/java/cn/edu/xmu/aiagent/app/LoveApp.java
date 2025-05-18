@@ -6,10 +6,12 @@ import cn.edu.xmu.aiagent.rag.QueryRewriter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,9 @@ public class LoveApp {
     // 工具
     @Resource
     private ToolCallback[] allTool;
+    // mcp服务
+    @Resource
+    private ToolCallbackProvider toolCallbackProvider;
 
 
     private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。" +
@@ -144,7 +149,29 @@ public class LoveApp {
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+//                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
                 .tools(allTool)
+                .call()
+                .chatResponse();
+
+        return chatResponse.getResult().getOutput().getText();
+    }
+
+
+    /**
+     * AI调用工具和MCP服务
+     * @param chatId
+     * @param message
+     * @return
+     */
+    public String doChatWithToolsAndMcp(String chatId, String message) {
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+//                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+                .tools(allTool)
+                .tools(toolCallbackProvider)
                 .call()
                 .chatResponse();
 
