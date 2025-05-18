@@ -169,7 +169,6 @@ public class LoveApp {
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
-//                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
                 .tools(allTool)
                 .tools(toolCallbackProvider)
                 .call()

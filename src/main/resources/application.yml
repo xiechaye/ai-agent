@@ -18,9 +18,13 @@ spring:
       chat:
         model: deepseek-r1:8b
 
-
-#联网搜索引入
+# 联网搜索
+# search-api密钥
 search-api:
+  api-key: api-key
+
+# pexels（图片视频搜索）
+pexels:
   api-key: api-key
 
 server:

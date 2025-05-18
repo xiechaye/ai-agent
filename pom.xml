@@ -66,25 +66,25 @@
             <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
             <version>1.0.0-M6</version>
         </dependency>
-<!--        支持结构化输出-->
+        <!--        支持结构化输出-->
         <dependency>
             <groupId>com.github.victools</groupId>
             <artifactId>jsonschema-generator</artifactId>
             <version>4.38.0</version>
         </dependency>
-<!--        文件会话记忆持久化序列化-->
+        <!--        文件会话记忆持久化序列化-->
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
             <version>5.6.2</version>
         </dependency>
-<!--        读取markdown文件-->
+        <!--        读取markdown文件-->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-markdown-document-reader</artifactId>
             <version>1.0.0-M6</version>
         </dependency>
-<!--        网页抓取-->
+        <!--        网页抓取-->
         <dependency>
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
@@ -92,7 +92,7 @@
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.itextpdf/itext-core -->
-<!--        pdf生成工具-->
+        <!--        pdf生成工具-->
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>itext-core</artifactId>
@@ -100,14 +100,14 @@
             <type>pom</type>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.itextpdf/font-asian -->
-<!--        字体样式-->
+        <!--        字体样式-->
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>font-asian</artifactId>
             <version>9.1.0</version>
             <scope>test</scope>
         </dependency>
-<!--        mcp-->
+        <!--        mcp-->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
@@ -116,16 +116,16 @@
 
 
         <!--&lt;!&ndash;        pgsql向量数据库相关依赖&ndash;&gt;-->
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.boot</groupId>-->
-<!--            <artifactId>spring-boot-starter-jdbc</artifactId>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.postgresql</groupId>-->
-<!--            <artifactId>postgresql</artifactId>-->
-<!--            <version>42.7.2</version>-->
-<!--            <scope>runtime</scope>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.springframework.boot</groupId>-->
+        <!--            <artifactId>spring-boot-starter-jdbc</artifactId>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.postgresql</groupId>-->
+        <!--            <artifactId>postgresql</artifactId>-->
+        <!--            <version>42.7.2</version>-->
+        <!--            <scope>runtime</scope>-->
+        <!--        </dependency>-->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-pgvector-store</artifactId>
