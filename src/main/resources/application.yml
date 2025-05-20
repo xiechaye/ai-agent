@@ -52,3 +52,10 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+alibaba:
+  oss:
+    endpoint: endpoint
+    bucket-name: bucket-name
+    access-key-id: access-key-id
+    access-key-secret: access-key-secret
+    region: region
