@@ -26,4 +26,15 @@ public class AiController {
     public Flux<String> doChatWithLoveAppSse(String chatId, String message) {
         return loveApp.doChat(chatId, message);
     }
+
+    /**
+     * 与LoveApp进行聊天（使用基于Rag知识库）
+     * @param chatId 会话id
+     * @param message 消息
+     * @return
+     */
+    @GetMapping("/love_app/chat/rag/sse")
+    public Flux<String> doChatWithLoveAppWithRagSse(String chatId, String message) {
+        return loveApp.doChatWithRag(chatId, message);
+    }
 }

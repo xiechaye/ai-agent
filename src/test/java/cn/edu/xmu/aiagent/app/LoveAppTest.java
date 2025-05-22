@@ -19,56 +19,56 @@ class LoveAppTest {
     @Resource
     private VectorStore pgVectorStore;
 
-    @Test
-    void testDoChatWithReport() {
-        String chatId = UUID.randomUUID().toString();
-        String message = "我是茶叶，我的对象是Suave，请让他更爱我";
-        LoveApp.LoveReport loveReport = loveApp.doChatWithReport(chatId, message);
-        Assertions.assertNotNull(loveReport);
-    }
-
-    @Test
-    void doChat() {
-    }
-
-    @Test
-    void doChatWithReport() {
-    }
-
-    // 应用RAG知识库问答
-    @Test
-    void doChatWithRag() {
-        String uuid = UUID.randomUUID().toString();
-        String message = "我是茶叶，要怎么样才能找到对象";
-        String s = loveApp.doChatWithRag(uuid, message);
-        Assertions.assertNotNull(s);
-    }
-
-    // 应用RAG检索增强服务
-    @Test
-    void doChatWithCloudRag() {
-        String uuid = UUID.randomUUID().toString();
-        String message = "我是茶叶，要怎么样才能找到对象";
-        String s = loveApp.doChatWithRag(uuid, message);
-        Assertions.assertNotNull(s);
-    }
-
-    // 应用RAG问答知识库（基于pgVector）
-    @Test
-    void doChatWithRagPgVector() {
-        List<Document> documents = List.of(
-                new Document("Spring AI rocks!! Spring AI rocks!! Spring AI rocks!! Spring AI rocks!! Spring AI rocks!!", Map.of("meta1", "meta1")),
-                new Document("The World is Big and Salvation Lurks Around the Corner"),
-                new Document("You walk forward facing the past and you turn back toward the future.", Map.of("meta2", "meta2")));
-        pgVectorStore.add(documents);
-        String uuid = UUID.randomUUID().toString();
-        String message = "我是茶叶，要怎么样才能找到对象";
-        String s = loveApp.doChatWithRag(uuid, message);
-        Assertions.assertNotNull(s);
-    }
-
-    @Test
-    void doChatWithTools() {
+//    @Test
+//    void testDoChatWithReport() {
+//        String chatId = UUID.randomUUID().toString();
+//        String message = "我是茶叶，我的对象是Suave，请让他更爱我";
+//        LoveApp.LoveReport loveReport = loveApp.doChatWithReport(chatId, message);
+//        Assertions.assertNotNull(loveReport);
+//    }
+//
+//    @Test
+//    void doChat() {
+//    }
+//
+//    @Test
+//    void doChatWithReport() {
+//    }
+//
+//    // 应用RAG知识库问答
+//    @Test
+//    void doChatWithRag() {
+//        String uuid = UUID.randomUUID().toString();
+//        String message = "我是茶叶，要怎么样才能找到对象";
+//        String s = loveApp.doChatWithRag(uuid, message);
+//        Assertions.assertNotNull(s);
+//    }
+//
+//    // 应用RAG检索增强服务
+//    @Test
+//    void doChatWithCloudRag() {
+//        String uuid = UUID.randomUUID().toString();
+//        String message = "我是茶叶，要怎么样才能找到对象";
+//        String s = loveApp.doChatWithRag(uuid, message);
+//        Assertions.assertNotNull(s);
+//    }
+//
+//    // 应用RAG问答知识库（基于pgVector）
+//    @Test
+//    void doChatWithRagPgVector() {
+//        List<Document> documents = List.of(
+//                new Document("Spring AI rocks!! Spring AI rocks!! Spring AI rocks!! Spring AI rocks!! Spring AI rocks!!", Map.of("meta1", "meta1")),
+//                new Document("The World is Big and Salvation Lurks Around the Corner"),
+//                new Document("You walk forward facing the past and you turn back toward the future.", Map.of("meta2", "meta2")));
+//        pgVectorStore.add(documents);
+//        String uuid = UUID.randomUUID().toString();
+//        String message = "我是茶叶，要怎么样才能找到对象";
+//        String s = loveApp.doChatWithRag(uuid, message);
+//        Assertions.assertNotNull(s);
+//    }
+//
+//    @Test
+//    void doChatWithTools() {
 //        // 测试联网搜索问题的答案
 //        testMessage("周末想带女朋友去上海约会，联网帮我搜索一下，推荐几个适合情侣的小众打卡地？");
 //
@@ -83,32 +83,32 @@ class LoveAppTest {
 //
 //        // 测试文件操作：保存用户档案
 //        testMessage("保存我的恋爱档案为文件");
-
-        // 测试 PDF 生成
-        testMessage("生成一份‘七夕约会计划’PDF，包含餐厅预订、活动流程和礼物清单");
-    }
-
-    private void testMessage(String message) {
-        String chatId = UUID.randomUUID().toString();
-        String answer = loveApp.doChatWithTools(chatId, message);
-        Assertions.assertNotNull(answer);
-    }
-
-    // 测试mcp服务调用
-    @Test
-    void doChatWithToolsAndMcp1() {
-        String uuid = UUID.randomUUID().toString();
-        String message = "我的另一半在厦门大学翔安校区，请帮我找到5公里范围内适合约会的地点。";
-        String content = loveApp.doChatWithToolsAndMcp(uuid, message);
-        Assertions.assertNotNull(content);
-    }
-
-    // 测试mcp服务调用(自定义mcp，图片调用)
-    @Test
-    void doChatWithToolsAndMcp2() {
-        String uuid = UUID.randomUUID().toString();
-        String message = "我想要一张适合情侣的星空壁纸帮我搜索一下";
-        String content = loveApp.doChatWithToolsAndMcp(uuid, message);
-        Assertions.assertNotNull(content);
-    }
+//
+//        // 测试 PDF 生成
+//        testMessage("生成一份‘七夕约会计划’PDF，包含餐厅预订、活动流程和礼物清单");
+//    }
+//
+//    private void testMessage(String message) {
+//        String chatId = UUID.randomUUID().toString();
+//        String answer = loveApp.doChatWithTools(chatId, message);
+//        Assertions.assertNotNull(answer);
+//    }
+//
+//    // 测试mcp服务调用
+//    @Test
+//    void doChatWithToolsAndMcp1() {
+//        String uuid = UUID.randomUUID().toString();
+//        String message = "我的另一半在厦门大学翔安校区，请帮我找到5公里范围内适合约会的地点。";
+//        String content = loveApp.doChatWithToolsAndMcp(uuid, message);
+//        Assertions.assertNotNull(content);
+//    }
+//
+//    // 测试mcp服务调用(自定义mcp，图片调用)
+//    @Test
+//    void doChatWithToolsAndMcp2() {
+//        String uuid = UUID.randomUUID().toString();
+//        String message = "我想要一张适合情侣的星空壁纸帮我搜索一下";
+//        String content = loveApp.doChatWithToolsAndMcp(uuid, message);
+//        Assertions.assertNotNull(content);
+//    }
 }

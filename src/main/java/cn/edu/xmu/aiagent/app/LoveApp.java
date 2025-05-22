@@ -119,24 +119,23 @@ public class LoveApp {
      * @param message 用户输入的消息
      * @return
      */
-    public String doChatWithRag(String chatId, String message) {
+    public Flux<String> doChatWithRag(String chatId, String message) {
         String reWrite = queryRewriter.doQueryReWrite(message);
-        ChatResponse chatResponse = chatClient.prompt()
+        return chatClient.prompt()
                 .user(reWrite)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
-//                // 应用知识库问答（内存向量数据库）
-//                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+                // 应用知识库问答（内存向量数据库）
+                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
 //                // 应用增强检索服务(云知识库)
 //                .advisors(loveAppRagCloudAdvisor)
 //                  // 应用知识库问答（pgvector 向量数据库）
 //                .advisors(new QuestionAnswerAdvisor(pgVectorStore))
-                // 自定义RAG检索增强服务（文档查询器+上下文增强器）
-                .advisors(LoveAppRagCustomAdvisorFactory.createRagCustomAdvisor(loveAppVectorStore, "单身"))
-                .call()
-                .chatResponse();
+//                // 自定义RAG检索增强服务（文档查询器+上下文增强器）
+//                .advisors(LoveAppRagCustomAdvisorFactory.createRagCustomAdvisor(loveAppVectorStore, "单身"))
+                .stream()
+                .content();
 
-        return chatResponse.getResult().getOutput().getText();
     }
 
     /**
