@@ -33,8 +33,19 @@ public class AiController {
      * @param message 消息
      * @return
      */
-    @GetMapping("/love_app/chat/rag/sse")
+    @GetMapping(value = "/love_app/chat/rag/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> doChatWithLoveAppWithRagSse(String chatId, String message) {
         return loveApp.doChatWithRag(chatId, message);
+    }
+
+    /**
+     * 与LoveApp进行聊天（使用基于工具和mcp服务）
+     * @param chatId 会话id
+     * @param message 消息
+     * @return
+     */
+    @GetMapping(value = "/love_app/chat/tool/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> doChatWithLoveAppWithToolsAndMcpSse(String chatId, String message) {
+        return loveApp.doChatWithToolsAndMcp(chatId, message);
     }
 }

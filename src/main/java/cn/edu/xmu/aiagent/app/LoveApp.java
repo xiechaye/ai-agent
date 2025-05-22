@@ -138,25 +138,6 @@ public class LoveApp {
 
     }
 
-    /**
-     * AI调用工具
-     * @param chatId
-     * @param message
-     * @return
-     */
-    public String doChatWithTools(String chatId, String message) {
-        ChatResponse chatResponse = chatClient.prompt()
-                .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
-//                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
-                .tools(allTool)
-                .call()
-                .chatResponse();
-
-        return chatResponse.getResult().getOutput().getText();
-    }
-
 
     /**
      * AI调用工具和MCP服务
@@ -164,16 +145,14 @@ public class LoveApp {
      * @param message
      * @return
      */
-    public String doChatWithToolsAndMcp(String chatId, String message) {
-        ChatResponse chatResponse = chatClient.prompt()
+    public Flux<String> doChatWithToolsAndMcp(String chatId, String message) {
+        return chatClient.prompt()
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
                 .tools(allTool)
                 .tools(toolCallbackProvider)
-                .call()
-                .chatResponse();
-
-        return chatResponse.getResult().getOutput().getText();
+                .stream()
+                .content();
     }
 }
