@@ -1,9 +1,8 @@
 package cn.edu.xmu.aiagent.tools;
 
 
-import cn.edu.xmu.aiagent.constant.FileConstant;
+
 import cn.edu.xmu.aiagent.utils.OssUtils;
-import cn.hutool.core.io.FileUtil;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -15,7 +14,6 @@ import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.UUID;
 
 /**
  * PDF生成工具类
@@ -29,17 +27,15 @@ public class PDFGenerationTool {
             @ToolParam(description = "Name of the file to save the generated PDF") String fileName,
             @ToolParam(description = "Content to be included in the PDF") String content) {
 
+        // 文件名简单合法性处理
+        fileName = fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+        fileName = String.format("%s/%s", System.currentTimeMillis(), fileName);
+
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             // 创建 PdfWriter 和 PdfDocument 对象，写入到 ByteArrayOutputStream
             try (PdfWriter writer = new PdfWriter(baos);
                  PdfDocument pdf = new PdfDocument(writer);
                  Document document = new Document(pdf)) {
-
-                // 自定义字体（需要人工下载字体文件到特定目录）
-//                String fontPath = Paths.get("src/main/resources/static/fonts/simsun.ttf")
-//                        .toAbsolutePath().toString();
-//                PdfFont font = PdfFontFactory.createFont(fontPath,
-//                        PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
 
                 // 使用内置中文字体
                 PdfFont font = PdfFontFactory.createFont("STSongStd-Light", "UniGB-UCS2-H");
@@ -55,9 +51,7 @@ public class PDFGenerationTool {
             // 将 PDF 内容作为字节数组获取
             byte[] pdfBytes = baos.toByteArray();
 
-            fileName = String.format("%s/%s", System.currentTimeMillis(), fileName);
-
-            // 使用提供的 OssUtils 方法将 PDF 字节上传到 OSS
+            // 上传到 OSS
             String ossUrl = OssUtils.uploadImage(pdfBytes, fileName);
 
             if (ossUrl != null) {

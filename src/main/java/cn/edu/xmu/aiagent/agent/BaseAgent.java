@@ -1,20 +1,20 @@
 package cn.edu.xmu.aiagent.agent;
 
-
 import cn.edu.xmu.aiagent.agent.model.AgentState;
 import cn.edu.xmu.aiagent.common.ErrorCode;
 import cn.edu.xmu.aiagent.exception.BusinessException;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
+@Data
 public abstract class BaseAgent {
     // 核心属性
     private String name;
@@ -76,7 +76,7 @@ public abstract class BaseAgent {
 
             return String.join("\n", resultList);
         } catch (Exception e) {
-            agentState = AgentState.IDLE;
+            agentState = AgentState.ERROR;
             log.error("Error during agent execution", e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         } finally {
