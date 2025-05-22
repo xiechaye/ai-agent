@@ -1,19 +1,24 @@
 package cn.edu.xmu.aiagent.app;
 
 import cn.edu.xmu.aiagent.advisor.MyLoggerAdvisor;
+import cn.edu.xmu.aiagent.chatMemory.FileBasedChatMemory;
 import cn.edu.xmu.aiagent.rag.LoveAppRagCustomAdvisorFactory;
 import cn.edu.xmu.aiagent.rag.QueryRewriter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -56,13 +61,13 @@ public class LoveApp {
         // 基于文件的持久化存储
 //        ChatMemory chatMemory = new FileBasedChatMemory(fileDir);
 
-//        // 初始化基于内存的对话记忆
-//        ChatMemory chatMemory = new InMemoryChatMemory();
+        // 初始化基于内存的对话记忆
+        ChatMemory chatMemory = new InMemoryChatMemory();
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
                         // 默认的基于文件的持久化存储
-//                        new MessageChatMemoryAdvisor(chatMemory),
+                        new MessageChatMemoryAdvisor(chatMemory),
                         // 自定义的日志 advisor
                         new MyLoggerAdvisor()
 //                        // 自定义AI推理能力增强的 advisor
@@ -77,18 +82,14 @@ public class LoveApp {
      * @param message 用户输入的消息
      * @return
      */
-    public String doChat(String chatId, String message) {
+    public Flux<String> doChat(String chatId, String message) {
 
-        ChatResponse chatResponse = chatClient.prompt()
+        return chatClient.prompt()
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
-                .call()
-                .chatResponse();
-
-        String content = chatResponse.getResult().getOutput().getText();
-//        log.info(content);
-        return content;
+                .stream()
+                .content();
     }
 
     /**
