@@ -31,11 +31,10 @@ public abstract class ReActAgent extends BaseAgent {
             if(!shouldAct) {
                 return "思考完成，不需要行动";
             }
-            act();
+            return act();
         } catch (Exception e) {
             log.error(e.getMessage());
             return "步骤执行失败: " + e.getMessage();
         }
-        return "";
     }
 }
