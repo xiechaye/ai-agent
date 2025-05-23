@@ -1,6 +1,6 @@
 <template>
-  <div class="love-app-container">
-    <div class="app-header">
+  <main class="love-app-container">
+    <header class="app-header">
       <div class="container d-flex justify-between align-center">
         <div class="return-btn">
           <el-button type="primary" size="small" @click="goBack" class="btn-with-icon">
@@ -11,9 +11,9 @@
         <h1 class="app-title hidden-xs">AI 恋爱大师</h1>
         <div class="header-actions"></div>
       </div>
-    </div>
+    </header>
     
-    <div class="app-content">
+    <section class="app-content">
       <chat-room
         ref="chatRoomRef"
         title="AI 恋爱大师"
@@ -21,8 +21,8 @@
         @send-message="handleSendMessage"
         @mode-change="handleModeChange"
       />
-    </div>
-  </div>
+    </section>
+  </main>
 </template>
 
 <script lang="ts" setup>

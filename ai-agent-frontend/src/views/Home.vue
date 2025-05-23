@@ -1,18 +1,18 @@
 <template>
-  <div class="home-container">
+  <main class="home-container">
     <div class="container">
       <h1 class="title fade-in">AI 智能体应用平台</h1>
       <p class="subtitle fade-in">选择您需要的智能服务</p>
       
-      <div class="card-container fade-in">
-        <router-link to="/love-app" class="app-card">
-          <div class="card">
-            <div class="card-header">
+      <section class="card-container fade-in">
+        <router-link to="/love-app" class="app-card" aria-label="进入AI恋爱大师应用">
+          <article class="card">
+            <header class="card-header">
               <div class="card-icon">
                 <el-icon><ChatLineRound /></el-icon>
               </div>
               <h2>AI 恋爱大师</h2>
-            </div>
+            </header>
             <div class="card-body">
               <p>智能恋爱咨询，让你的情感生活更美好</p>
               <div class="card-features">
@@ -21,20 +21,20 @@
                 <span class="feature-tag">多模式对话</span>
               </div>
             </div>
-            <div class="card-footer">
+            <footer class="card-footer">
               <el-button type="primary" round>进入应用</el-button>
-            </div>
-          </div>
+            </footer>
+          </article>
         </router-link>
         
-        <router-link to="/love-manus" class="app-card">
-          <div class="card">
-            <div class="card-header">
+        <router-link to="/love-manus" class="app-card" aria-label="进入AI超级智能体应用">
+          <article class="card">
+            <header class="card-header">
               <div class="card-icon">
                 <el-icon><Connection /></el-icon>
               </div>
               <h2>AI 超级智能体</h2>
-            </div>
+            </header>
             <div class="card-body">
               <p>强大的智能助手，解答你的各种问题</p>
               <div class="card-features">
@@ -43,14 +43,14 @@
                 <span class="feature-tag">实时分析</span>
               </div>
             </div>
-            <div class="card-footer">
+            <footer class="card-footer">
               <el-button type="primary" round>进入应用</el-button>
-            </div>
-          </div>
+            </footer>
+          </article>
         </router-link>
-      </div>
+      </section>
     </div>
-  </div>
+  </main>
 </template>
 
 <script lang="ts" setup>

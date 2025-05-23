@@ -13,8 +13,8 @@
     
     <div class="messages-container" ref="messagesContainer">
       <div v-for="msg in messages" :key="msg.id" :class="['message', msg.role === 'user' ? 'user-message' : 'ai-message']">
-        <div class="message-avatar" v-if="msg.role === 'ai'">
-          <el-icon><ChatDotRound /></el-icon>
+        <div class="message-avatar ai-avatar" v-if="msg.role === 'ai'">
+          <span class="ai-letter">A</span>
         </div>
         <div class="message-content">
           <div class="message-bubble">
@@ -28,8 +28,8 @@
       </div>
       
       <div v-if="loading" class="message ai-message">
-        <div class="message-avatar">
-          <el-icon><ChatDotRound /></el-icon>
+        <div class="message-avatar ai-avatar">
+          <span class="ai-letter">A</span>
         </div>
         <div class="message-content">
           <div class="message-bubble">
@@ -422,6 +422,17 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.ai-avatar {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: bold;
+}
+
+.ai-letter {
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .user-avatar {
   background-color: #e6f7ff;
   color: #1890ff;
@@ -438,6 +449,7 @@ onMounted(() => {
   border-radius: var(--border-radius-large);
   position: relative;
   word-break: break-word;
+  text-align: left;
 }
 
 .user-message .message-bubble {
@@ -454,14 +466,17 @@ onMounted(() => {
   margin: 0;
   white-space: pre-wrap;
   line-height: 1.5;
+  text-align: left;
 }
 
 .user-message .message-bubble p {
   color: #1890ff;
+  text-align: left;
 }
 
 .ai-message .message-bubble p {
   color: var(--text-primary);
+  text-align: left;
 }
 
 .message-time {
