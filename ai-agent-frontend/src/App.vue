@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import FooterBar from './components/FooterBar.vue';
 
 // 在移动设备上调整视口高度，解决100vh问题
 onMounted(() => {
@@ -23,6 +24,7 @@ onMounted(() => {
         </transition>
       </router-view>
     </main>
+    <FooterBar />
   </div>
 </template>
 
