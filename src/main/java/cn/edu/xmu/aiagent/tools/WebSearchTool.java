@@ -31,7 +31,7 @@ public class WebSearchTool {
     @Tool(description = "Search for information from Bing Search Engine")
     public String searchWeb(
             @ToolParam(description = "Search query keyword") String query,
-            @ToolParam(description = "Optional location parameter (e.g. '(Fujian,China)'") String location) {
+            @ToolParam(description = "Optional location parameter, format as 'province/state,country' in English only (e.g. 'Fujian,China'). MUST use province/state name (NOT city name) and both names MUST be in English.") String location) {
 
         Map<String, Object> paramMap = new HashMap<>();
         paramMap.put("q", query);

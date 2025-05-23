@@ -1,7 +1,7 @@
 package cn.edu.xmu.aiagent.tools;
 
-
-
+import java.io.File;
+import cn.hutool.http.HttpUtil;
 import cn.edu.xmu.aiagent.utils.OssUtils;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
@@ -9,13 +9,18 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.layout.element.Image;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
+import cn.hutool.core.io.FileUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,7 +32,7 @@ import java.util.regex.Pattern;
  */
 public class PDFGenerationTool {
 
-    @Tool(description = "Generate a PDF file with given content", returnDirect = true)
+    @Tool(description = "Generate a PDF document from plain text with image URLs (avoiding Markdown syntax). Converts content to PDF and uploads to OSS storage. Returns accessible URL for the generated PDF. Ideal for creating reports, plans, or documents with embedded images. For images, use full HTTP URLs instead of placeholders.", returnDirect = true)
     public String generatePDF(
             @ToolParam(description = "Name of the file to save the generated PDF") String fileName,
             @ToolParam(description = "Content to be included in the PDF") String content) {
@@ -39,11 +44,12 @@ public class PDFGenerationTool {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             // 创建 PdfWriter 和 PdfDocument 对象，写入到 ByteArrayOutputStream
             try (PdfWriter writer = new PdfWriter(baos);
-                 PdfDocument pdf = new PdfDocument(writer);
-                 Document document = new Document(pdf)) {
+                    PdfDocument pdf = new PdfDocument(writer);
+                    Document document = new Document(pdf)) {
 
                 // 使用本地中文字体，保证兼容性
-                String fontPath = Paths.get("src/main/resources/static/NotoSansSC-Regular.ttf").toAbsolutePath().toString();
+                String fontPath = Paths.get("src/main/resources/static/NotoSansSC-Regular.ttf").toAbsolutePath()
+                        .toString();
                 PdfFont font = PdfFontFactory.createFont(fontPath, "Identity-H", pdf);
                 document.setFont(font);
 
@@ -59,16 +65,69 @@ public class PDFGenerationTool {
                             document.add(new Paragraph(text));
                         }
                     }
+                    
                     // 插入图片
                     String imageUrl = matcher.group(1);
                     try {
-                        Image img = new Image(ImageDataFactory.create(imageUrl));
-                        document.add(img);
+                        System.out.println("尝试加载图片: " + imageUrl);
+                        
+                        // 创建临时文件
+                        File tempFile = File.createTempFile("pdf_img_", ".tmp");
+                        tempFile.deleteOnExit(); // 程序结束时自动删除
+                        
+                        try {
+                            // 添加请求头，模拟浏览器行为，绕过防盗链
+                            String host = "";
+                            try {
+                                URL url = new URL(imageUrl);
+                                host = url.getHost();
+                            } catch(Exception ex) {
+                                // 忽略URL解析错误
+                            }
+                            
+                            HttpResponse response = HttpRequest.get(imageUrl)
+                                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                                .header("Referer", "https://" + host + "/")
+                                .header("Accept", "image/webp,image/apng,image/*,*/*;q=0.8")
+                                .timeout(10000) // 10秒超时
+                                .execute();
+                                
+                            if (response.isOk()) {
+                                // 保存响应内容到临时文件
+                                FileUtil.writeBytes(response.bodyBytes(), tempFile);
+                                System.out.println("图片下载成功: " + tempFile.getAbsolutePath() + " (大小: " + tempFile.length() + " 字节)");
+                                
+                                // 从临时文件加载图片
+                                ImageData data = ImageDataFactory.create(tempFile.getAbsolutePath());
+                                Image img = new Image(data);
+                                
+                                // 设置合理的图片尺寸
+                                float width = pdf.getDefaultPageSize().getWidth() - 50;
+                                img.setWidth(width).setAutoScale(true);
+                                
+                                // 添加图片到文档
+                                document.add(img);
+                                System.out.println("图片添加到PDF成功: " + imageUrl);
+                            } else {
+                                throw new IOException("HTTP请求失败，状态码: " + response.getStatus());
+                            }
+                        } catch (Exception ex) {
+                            System.out.println("下载或处理图片失败: " + ex.getMessage());
+                            document.add(new Paragraph("[图片加载失败] " + imageUrl));
+                        } finally {
+                            // 确保临时文件被删除
+                            if (tempFile.exists()) {
+                                tempFile.delete();
+                            }
+                        }
                     } catch (Exception e) {
+                        System.out.println("图片处理异常: " + e.getMessage());
                         document.add(new Paragraph("[图片加载失败] " + imageUrl));
                     }
+                    
                     lastEnd = matcher.end();
                 }
+                
                 // 插入最后剩余的文本
                 if (lastEnd < content.length()) {
                     String text = content.substring(lastEnd);
@@ -95,4 +154,3 @@ public class PDFGenerationTool {
         }
     }
 }
-
