@@ -49,7 +49,7 @@ const setupEventListeners = () => {
         if (event.data.includes('[DONE]')) {
           closeEventSource()
           if (chatRoomRef.value) {
-            chatRoomRef.value.setLoading(false)
+            chatRoomRef.value.completeAiMessage()
           }
           return
         }
@@ -59,7 +59,7 @@ const setupEventListeners = () => {
         
         // 更新聊天内容
         if (chatRoomRef.value) {
-          chatRoomRef.value.addAiMessage(currentResponse)
+          chatRoomRef.value.updateAiMessage(currentResponse)
         }
       } catch (e) {
         console.error('处理SSE响应失败:', e)
@@ -71,7 +71,7 @@ const setupEventListeners = () => {
     console.error('SSE连接错误:', error)
     closeEventSource()
     if (chatRoomRef.value) {
-      chatRoomRef.value.setLoading(false)
+      chatRoomRef.value.completeAiMessage()
     }
   }
 }

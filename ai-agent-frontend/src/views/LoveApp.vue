@@ -67,7 +67,7 @@ const setupEventListeners = () => {
       
       // 更新聊天内容
       if (chatRoomRef.value) {
-        chatRoomRef.value.addAiMessage(fullResponse)
+        chatRoomRef.value.updateAiMessage(fullResponse)
       }
     }
   }
@@ -76,14 +76,14 @@ const setupEventListeners = () => {
     console.error('SSE连接错误:', error)
     closeEventSource()
     if (chatRoomRef.value) {
-      chatRoomRef.value.setLoading(false)
+      chatRoomRef.value.completeAiMessage()
     }
   }
   
   eventSource.addEventListener('close', () => {
     closeEventSource()
     if (chatRoomRef.value) {
-      chatRoomRef.value.setLoading(false)
+      chatRoomRef.value.completeAiMessage()
     }
   })
 }

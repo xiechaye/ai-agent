@@ -63,6 +63,7 @@ const inputMessage = ref('')
 const loading = ref(false)
 const currentMode = ref<LoveAppMode>(LoveAppMode.BASIC)
 const messagesContainer = ref<HTMLElement | null>(null)
+const currentAiMessageId = ref<string | null>(null)
 
 // 格式化时间
 const formatTime = (timestamp: number) => {
@@ -86,25 +87,49 @@ const sendMessage = async () => {
   inputMessage.value = ''
   loading.value = true
   
+  // 创建新的AI消息占位（空内容）
+  currentAiMessageId.value = uuidv4()
+  messages.value.push({
+    id: currentAiMessageId.value,
+    role: ChatRole.AI,
+    content: '',
+    timestamp: Date.now()
+  })
+  
   await nextTick()
   scrollToBottom()
   
   emit('send-message', msgToSend)
 }
 
-// 添加AI消息
-const addAiMessage = (content: string) => {
-  const aiMessage: ChatMessage = {
-    id: uuidv4(),
-    role: ChatRole.AI,
-    content,
-    timestamp: Date.now()
+// 更新或添加AI消息
+const updateAiMessage = (content: string) => {
+  // 如果已有AI消息ID，则更新现有消息
+  if (currentAiMessageId.value) {
+    const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
+    if (index !== -1) {
+      messages.value[index].content = content
+    }
+  } else {
+    // 如果没有当前AI消息ID（兼容旧逻辑），则创建新消息
+    currentAiMessageId.value = uuidv4()
+    messages.value.push({
+      id: currentAiMessageId.value,
+      role: ChatRole.AI,
+      content,
+      timestamp: Date.now()
+    })
   }
   
-  messages.value.push(aiMessage)
   nextTick(() => {
     scrollToBottom()
   })
+}
+
+// 完成AI消息响应
+const completeAiMessage = () => {
+  currentAiMessageId.value = null
+  loading.value = false
 }
 
 // 滚动到底部
@@ -121,9 +146,13 @@ const handleModeChange = (mode: LoveAppMode) => {
 
 // 暴露方法给父组件
 defineExpose({
-  addAiMessage,
+  updateAiMessage,
+  completeAiMessage,
   setLoading: (value: boolean) => {
     loading.value = value
+    if (!value) {
+      currentAiMessageId.value = null
+    }
   }
 })
 
@@ -212,6 +241,7 @@ onMounted(() => {
 .message-content p {
   margin: 0;
   word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .message-time {
