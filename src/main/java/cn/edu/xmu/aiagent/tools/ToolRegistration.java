@@ -31,6 +31,7 @@ public class ToolRegistration {
         TerminateTool terminateTool = new TerminateTool();
         QueryWeatherTool queryWeatherTool = new QueryWeatherTool(gaodeApiKey);
         CityCodeQueryTool cityCodeQueryTool = new CityCodeQueryTool();
+        QueryDateTimeTool queryDateTimeTool = new QueryDateTimeTool();
         return ToolCallbacks.from(
                 cityCodeQueryTool,
                 queryWeatherTool,
@@ -40,7 +41,8 @@ public class ToolRegistration {
                 webScrapeTool,
                 resourceDownloadTool,
                 terminalOperationTool,
-                pdfGenerationTool
+                pdfGenerationTool,
+                queryDateTimeTool
         );
     }
 }
