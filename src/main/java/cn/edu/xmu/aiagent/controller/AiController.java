@@ -5,6 +5,7 @@ import cn.edu.xmu.aiagent.app.LoveApp;
 import lombok.AllArgsConstructor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,7 @@ public class AiController {
     private final LoveApp loveApp;
     private final ToolCallback[] allTools;
     private final ChatModel dashscopeChatModel;
+    private final ToolCallbackProvider toolCallbackProvider;
 
     /**
      * 与LoveApp进行聊天
@@ -61,7 +63,7 @@ public class AiController {
      */
     @GetMapping("/love_manus/chat/sse")
     public SseEmitter doChatWithLoveManusSse(String message) {
-        LoveManus loveManus = new LoveManus(allTools, dashscopeChatModel);
+        LoveManus loveManus = new LoveManus(allTools, dashscopeChatModel, toolCallbackProvider);
         return loveManus.run(message);
     }
 }

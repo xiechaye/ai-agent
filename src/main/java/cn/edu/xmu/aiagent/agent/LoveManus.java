@@ -4,13 +4,15 @@ import cn.edu.xmu.aiagent.advisor.MyLoggerAdvisor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LoveManus extends ToolCallAgent {
 
-    public LoveManus(ToolCallback[] allTools, ChatModel dashscopeChatModel) {
-        super(allTools);
+    public LoveManus(ToolCallback[] allTools, ChatModel dashscopeChatModel, ToolCallbackProvider toolCallbackProvider) {
+
+        super(allTools, toolCallbackProvider);
         this.setName("loveManus");
         String SYSTEM_PROMPT = """
                 You are Manus, a gentle and witty AI love assistant, dedicated to helping users with all matters of the heart.

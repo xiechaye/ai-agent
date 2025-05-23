@@ -113,7 +113,7 @@ public class PDFGenerationTool {
                             }
                         } catch (Exception ex) {
                             System.out.println("下载或处理图片失败: " + ex.getMessage());
-                            document.add(new Paragraph("[图片加载失败] " + imageUrl));
+                            // 图片加载失败时不添加任何内容到PDF
                         } finally {
                             // 确保临时文件被删除
                             if (tempFile.exists()) {
@@ -122,7 +122,7 @@ public class PDFGenerationTool {
                         }
                     } catch (Exception e) {
                         System.out.println("图片处理异常: " + e.getMessage());
-                        document.add(new Paragraph("[图片加载失败] " + imageUrl));
+                        // 图片加载失败时不添加任何内容到PDF
                     }
                     
                     lastEnd = matcher.end();
