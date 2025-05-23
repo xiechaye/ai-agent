@@ -19,6 +19,18 @@
         <div class="message-content">
           <div class="message-bubble">
             <p>{{ msg.content }}</p>
+            <!-- 如果消息包含文件链接，显示下载按钮 -->
+            <div v-if="msg.fileLink" class="file-download">
+              <el-button type="primary" size="small" @click="downloadFile(msg.fileLink)" class="download-btn">
+                <el-icon><Download /></el-icon>
+                <span>下载文件</span>
+              </el-button>
+            </div>
+            <!-- 如果消息正在执行中，显示执行中的指示器 -->
+            <div v-if="msg.isExecuting" class="executing-indicator">
+              <el-icon class="executing-icon"><Loading /></el-icon>
+              <span>AI正在执行命令，请耐心等待...</span>
+            </div>
           </div>
           <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
         </div>
@@ -49,9 +61,11 @@
         @keyup.enter.exact.prevent="sendMessage"
         class="chat-input"
       />
+      <!-- 发送/停止按钮 - 根据状态动态切换 -->
       <el-button 
+        v-if="!loading && !isGenerating && typingTimer === null && !sseActive" 
         type="primary" 
-        :disabled="!inputMessage.trim() || loading" 
+        :disabled="!inputMessage.trim()" 
         @click="sendMessage"
         class="send-button"
         round
@@ -59,16 +73,27 @@
         <el-icon class="send-icon"><Position /></el-icon>
         <span class="send-text">发送</span>
       </el-button>
+      
+      <el-button 
+        v-else
+        type="danger" 
+        @click="stopGeneration"
+        class="stop-button"
+        round
+      >
+        <el-icon class="stop-icon"><Close /></el-icon>
+        <span class="stop-text">停止</span>
+      </el-button>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import { ChatMessage, ChatRole, LoveAppMode } from '../types/chat'
 import { ElMessage } from 'element-plus'
 import { v4 as uuidv4 } from 'uuid'
-import { ChatDotRound, User, Position } from '@element-plus/icons-vue'
+import { ChatDotRound, User, Position, Download, Loading, Close } from '@element-plus/icons-vue'
 
 const props = defineProps({
   title: {
@@ -81,11 +106,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['send-message', 'mode-change'])
+const emit = defineEmits(['send-message', 'mode-change', 'stop-generation'])
 
 const messages = ref<ChatMessage[]>([])
 const inputMessage = ref('')
 const loading = ref(false)
+const isGenerating = ref(false) // 控制是否正在生成消息
 const currentMode = ref<LoveAppMode>(LoveAppMode.BASIC)
 const messagesContainer = ref<HTMLElement | null>(null)
 const currentAiMessageId = ref<string | null>(null)
@@ -93,11 +119,43 @@ let typingTimer: NodeJS.Timeout | null = null // 用于打字机效果的计时�
 let fullText = '' // 完整的文本内容
 let displayedText = '' // 当前显示的文本内容
 let typingSpeed = 10 // 打字速度（毫秒/字符）
+const sseActive = ref(false)
+
+// 添加新的状态变量追踪滚动状态
+const userScrolled = ref(false)
+const isNearBottom = ref(true)
 
 // 格式化时间
 const formatTime = (timestamp: number) => {
   const date = new Date(timestamp)
   return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
+
+// 停止消息生成
+const stopGeneration = () => {
+  // 发出停止生成的事件
+  emit('stop-generation')
+  
+  // 停止当前的打字效果
+  if (typingTimer) {
+    clearInterval(typingTimer)
+    typingTimer = null
+  }
+  
+  // 更新状态
+  isGenerating.value = false
+  
+  // 如果有当前消息，添加停止生成的提示
+  if (currentAiMessageId.value) {
+    const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
+    if (index !== -1) {
+      messages.value[index].content += '\n\n[用户已停止生成]'
+      messages.value[index].isExecuting = false
+    }
+    
+    // 完成当前消息
+    currentAiMessageId.value = null
+  }
 }
 
 // 发送消息
@@ -115,6 +173,8 @@ const sendMessage = async () => {
   const msgToSend = inputMessage.value.trim()
   inputMessage.value = ''
   loading.value = true
+  isGenerating.value = true // 设置生成状态为true
+  sseActive.value = true // 设置SSE连接为活跃状态
   
   // 创建新的AI消息占位（空内容）
   currentAiMessageId.value = uuidv4()
@@ -137,11 +197,14 @@ const updateAiMessage = (content: string) => {
   if (content.startsWith('工具:') || content.startsWith('Tools:')) {
     // 为工具调用结果创建新消息
     const toolMessageId = uuidv4()
+    const fileLink = extractFileLink(content)
+    
     messages.value.push({
       id: toolMessageId,
       role: ChatRole.AI,
       content,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      fileLink
     })
     nextTick(() => {
       scrollToBottom()
@@ -153,7 +216,10 @@ const updateAiMessage = (content: string) => {
   if (currentAiMessageId.value) {
     const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
     if (index !== -1) {
+      // 检测是否包含文件下载链接
+      const fileLink = extractFileLink(content)
       messages.value[index].content = content
+      messages.value[index].fileLink = fileLink
     } else {
       // 创建新消息
       addNewAiMessage(content)
@@ -171,22 +237,30 @@ const updateAiMessage = (content: string) => {
 // 添加新的AI消息
 const addNewAiMessage = (content: string) => {
   currentAiMessageId.value = uuidv4()
+  // 检测是否包含文件下载链接
+  const fileLink = extractFileLink(content)
+  
   messages.value.push({
     id: currentAiMessageId.value,
     role: ChatRole.AI,
     content,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    fileLink
   })
 }
 
 // 直接添加新消息而不更新现有消息或重置loading状态
 const addAiMessage = (content: string) => {
   const messageId = uuidv4()
+  // 检测是否包含文件下载链接
+  const fileLink = extractFileLink(content)
+  
   messages.value.push({
     id: messageId,
     role: ChatRole.AI,
     content,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    fileLink
   })
   
   nextTick(() => {
@@ -194,10 +268,52 @@ const addAiMessage = (content: string) => {
   })
 }
 
+// 提取消息中的文件下载链接
+const extractFileLink = (content: string): string | undefined => {
+  // 匹配OSS上传成功消息，例如：PDF generated and uploaded successfully to OSS: https://...
+  const ossRegex = /uploaded successfully to OSS:\s*(https:\/\/.*\.(?:pdf|docx|xlsx|pptx|zip|rar|jpg|png|gif))/i
+  const ossMatch = content.match(ossRegex)
+  
+  if (ossMatch && ossMatch[1]) {
+    return ossMatch[1]
+  }
+  
+  // 匹配普通URL，限定文件类型为常见文档和压缩格式
+  const urlRegex = /(https?:\/\/[^\s]+\.(?:pdf|docx|xlsx|pptx|zip|rar|jpg|png|gif))/gi
+  const urlMatch = content.match(urlRegex)
+  
+  if (urlMatch && urlMatch[0]) {
+    return urlMatch[0]
+  }
+  
+  return undefined
+}
+
+// 下载文件
+const downloadFile = (url: string) => {
+  // 创建一个临时的a标签来触发下载
+  const link = document.createElement('a')
+  link.href = url
+  
+  // 从URL中提取文件名
+  const fileName = url.substring(url.lastIndexOf('/') + 1)
+  link.download = fileName
+  
+  // 添加到文档中，触发点击，然后移除
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  
+  ElMessage.success('开始下载文件: ' + fileName)
+}
+
 // 更新或添加AI消息（带打字机效果）
-const updateAiMessageWithTyping = (content: string) => {
+const updateAiMessageWithTyping = (content: string, useTypingEffect: boolean = true) => {
   // 保存完整文本
   fullText = content
+  
+  // 设置生成状态为true，确保显示停止按钮
+  isGenerating.value = true
   
   // 如果已有消息正在进行打字效果，先清除之前的计时器
   if (typingTimer) {
@@ -208,6 +324,8 @@ const updateAiMessageWithTyping = (content: string) => {
   // 如果没有当前AI消息，创建一个新的
   if (!currentAiMessageId.value) {
     addNewAiMessage('')
+    // 新消息创建时，重置用户滚动状态，确保新消息可见
+    userScrolled.value = false
   }
   
   // 查找当前消息索引
@@ -225,8 +343,69 @@ const updateAiMessageWithTyping = (content: string) => {
     displayedText = ''
   }
   
-  // 启动打字机效果
+  // 如果不使用打字效果，直接更新全部内容
+  if (!useTypingEffect) {
+    messages.value[index].content = fullText
+    // 检测是否包含文件下载链接
+    messages.value[index].fileLink = extractFileLink(fullText)
+    nextTick(() => {
+      scrollToBottom()
+    })
+    return
+  }
+  
+  // 否则启动打字机效果
   startTypingEffect(index)
+}
+
+// 设置消息的执行中状态
+const setMessageExecuting = (isExecuting: boolean) => {
+  if (!currentAiMessageId.value) return
+  
+  const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
+  if (index !== -1) {
+    messages.value[index].isExecuting = isExecuting
+    
+    // 当设置为执行中状态时，保持isGenerating为true
+    if (isExecuting) {
+      isGenerating.value = true
+    } else {
+      // 当设置为非执行中状态时，检查是否还有其他执行中消息
+      const hasOtherExecutingMessages = messages.value.some((m, i) => i !== index && m.isExecuting === true)
+      if (!hasOtherExecutingMessages) {
+        isGenerating.value = false
+      }
+    }
+  }
+}
+
+// 完成AI消息响应
+const completeAiMessage = () => {
+  // 清除打字机效果的计时器
+  if (typingTimer) {
+    clearInterval(typingTimer)
+    typingTimer = null
+  }
+  
+  // 如果还有未完成的打字内容，立即显示完整内容
+  if (currentAiMessageId.value && fullText) {
+    const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
+    if (index !== -1) {
+      messages.value[index].content = fullText
+      // 检测是否包含文件下载链接
+      messages.value[index].fileLink = extractFileLink(fullText)
+      // 清除执行中状态
+      messages.value[index].isExecuting = false
+    }
+  }
+  
+  currentAiMessageId.value = null
+  loading.value = false
+  
+  // 注意：这里不重置isGenerating或sseActive，由父组件控制
+  
+  fullText = ''
+  displayedText = ''
 }
 
 // 启动打字机效果
@@ -235,6 +414,9 @@ const startTypingEffect = (messageIndex: number) => {
   
   // 如果已经显示了全部文本，不需要打字效果
   if (displayedText === fullText) return
+  
+  // 设置生成状态为true，确保显示停止按钮
+  isGenerating.value = true
   
   // 计算还有多少字符需要显示
   const remainingChars = fullText.length - displayedText.length
@@ -257,6 +439,12 @@ const startTypingEffect = (messageIndex: number) => {
       if (typingTimer) {
         clearInterval(typingTimer)
         typingTimer = null
+        
+        // 检查是否有执行中的消息，如果没有则重置生成状态
+        const hasExecutingMessages = messages.value.some(msg => msg.isExecuting === true)
+        if (!hasExecutingMessages) {
+          isGenerating.value = false
+        }
       }
       return
     }
@@ -277,30 +465,30 @@ const startTypingEffect = (messageIndex: number) => {
   }, adjustedSpeed)
 }
 
-// 完成AI消息响应
-const completeAiMessage = () => {
-  // 清除打字机效果的计时器
-  if (typingTimer) {
-    clearInterval(typingTimer)
-    typingTimer = null
+// 监听滚动事件
+const handleScroll = () => {
+  if (!messagesContainer.value) return
+  
+  const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
+  // 判断是否接近底部（距离底部20px以内）
+  const bottom = scrollHeight - scrollTop - clientHeight < 20
+  
+  // 如果用户已滚动且现在在底部，重置滚动状态
+  if (userScrolled.value && bottom) {
+    userScrolled.value = false
   }
   
-  // 如果还有未完成的打字内容，立即显示完整内容
-  if (currentAiMessageId.value && fullText) {
-    const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
-    if (index !== -1) {
-      messages.value[index].content = fullText
-    }
-  }
-  
-  currentAiMessageId.value = null
-  loading.value = false
-  fullText = ''
-  displayedText = ''
+  // 更新是否接近底部状态
+  isNearBottom.value = bottom
 }
 
-// 滚动到底部
+// 滚动到底部 - 智能版
 const scrollToBottom = () => {
+  // 如果用户手动滚动了，且不在底部，则不自动滚动
+  if (userScrolled.value && !isNearBottom.value) {
+    return
+  }
+  
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
@@ -317,10 +505,12 @@ defineExpose({
   updateAiMessageWithTyping,
   addAiMessage,
   completeAiMessage,
+  setMessageExecuting,
   setLoading: (value: boolean) => {
     loading.value = value
     if (!value) {
       currentAiMessageId.value = null
+      
       // 清除打字机效果
       if (typingTimer) {
         clearInterval(typingTimer)
@@ -328,6 +518,17 @@ defineExpose({
       }
       fullText = ''
       displayedText = ''
+    }
+  },
+  // 添加新方法给父组件控制SSE连接状态
+  setSseActive: (active: boolean) => {
+    sseActive.value = active
+    // 当SSE连接结束时，检查是否需要重置生成状态
+    if (!active) {
+      const hasExecutingMessages = messages.value.some(msg => msg.isExecuting === true)
+      if (!hasExecutingMessages) {
+        isGenerating.value = false
+      }
     }
   }
 })
@@ -343,9 +544,37 @@ watch(
   { deep: true }
 )
 
-// 组件挂载后滚动到底部
+// 组件挂载后设置滚动监听
 onMounted(() => {
   scrollToBottom()
+  
+  // 添加滚动事件监听
+  if (messagesContainer.value) {
+    messagesContainer.value.addEventListener('scroll', handleScroll)
+    
+    // 添加滚动中检测
+    messagesContainer.value.addEventListener('touchmove', () => {
+      if (!userScrolled.value && !isNearBottom.value) {
+        userScrolled.value = true
+      }
+    })
+    
+    // 添加鼠标滚轮检测
+    messagesContainer.value.addEventListener('wheel', () => {
+      if (!userScrolled.value && !isNearBottom.value) {
+        userScrolled.value = true
+      }
+    })
+  }
+})
+
+// 组件卸载时移除滚动监听
+onUnmounted(() => {
+  if (messagesContainer.value) {
+    messagesContainer.value.removeEventListener('scroll', handleScroll)
+    messagesContainer.value.removeEventListener('touchmove', () => {})
+    messagesContainer.value.removeEventListener('wheel', () => {})
+  }
 })
 </script>
 
@@ -361,6 +590,8 @@ onMounted(() => {
   box-shadow: var(--box-shadow);
   background-color: var(--bg-secondary);
   overflow: hidden;
+  position: relative;
+  padding-bottom: 80px; /* 添加底部填充，防止消息被输入框遮挡 */
 }
 
 .chat-header {
@@ -391,6 +622,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+  padding-bottom: calc(var(--spacing-lg) * 3); /* 增加底部填充，避免最后的消息被输入框遮挡 */
 }
 
 .message {
@@ -479,6 +711,59 @@ onMounted(() => {
   text-align: left;
 }
 
+.file-download {
+  margin-top: var(--spacing-md);
+  display: flex;
+  justify-content: flex-start;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  border-color: transparent;
+  transition: all var(--transition-normal);
+}
+
+.download-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.executing-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-md);
+  color: #b88230;
+  font-size: var(--font-size-sm);
+  background-color: #fff9e6;
+  padding: 10px 14px;
+  border-radius: var(--border-radius-medium);
+  border-left: 3px solid #e6a23c;
+  animation: pulse-bg 2s infinite;
+  font-weight: 500;
+}
+
+.executing-icon {
+  animation: spin 1.5s linear infinite;
+  color: #e6a23c;
+  font-size: 18px;
+}
+
+@keyframes pulse-bg {
+  0% { background-color: #fff9e6; }
+  50% { background-color: #faecd8; }
+  100% { background-color: #fff9e6; }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .message-time {
   font-size: 12px;
   color: var(--text-secondary);
@@ -493,6 +778,16 @@ onMounted(() => {
   align-items: flex-end;
   gap: var(--spacing-sm);
   background-color: white;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .chat-input {
@@ -503,6 +798,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
+}
+
+.stop-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
 }
 
 .typing {
@@ -537,12 +845,20 @@ onMounted(() => {
     border-radius: 0;
     box-shadow: none;
   }
+  
+  .input-container {
+    max-width: 95%;
+  }
 }
 
 @media (max-width: 768px) {
   .chat-container {
     max-width: 100%;
     width: 100%;
+  }
+  
+  .input-container {
+    max-width: 100%;
   }
   
   .messages-container {

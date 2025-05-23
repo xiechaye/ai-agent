@@ -57,6 +57,13 @@ const handleSendMessage = (message: string) => {
   currentResponse = ''
   isToolResponse = false
   
+  // 设置加载状态
+  if (chatRoomRef.value) {
+    chatRoomRef.value.setLoading(true)
+    // 设置SSE连接为活跃状态
+    chatRoomRef.value.setSseActive(true)
+  }
+  
   // 根据当前模式创建对应的SSE连接
   try {
     switch (currentMode.value) {
@@ -76,6 +83,8 @@ const handleSendMessage = (message: string) => {
     ElMessage.error('连接失败，请稍后再试')
     if (chatRoomRef.value) {
       chatRoomRef.value.setLoading(false)
+      // 连接失败时重置SSE状态
+      chatRoomRef.value.setSseActive(false)
     }
   }
 }
@@ -84,8 +93,41 @@ const handleSendMessage = (message: string) => {
 const setupEventListeners = () => {
   if (!eventSource) return
   
+  let executingTimerId: NodeJS.Timeout | null = null
+  let isExecutingShown = false
+  
+  eventSource.onopen = () => {
+    if (chatRoomRef.value) {
+      chatRoomRef.value.setLoading(false)
+      // 创建初始消息
+      chatRoomRef.value.updateAiMessage('')
+      // 立即设置执行中状态
+      chatRoomRef.value.setMessageExecuting(true)
+      isExecutingShown = true
+    }
+  }
+  
   eventSource.onmessage = (event) => {
     if (event.data) {
+      // 收到消息时暂时隐藏执行中状态
+      if (isExecutingShown && chatRoomRef.value) {
+        chatRoomRef.value.setMessageExecuting(false)
+        isExecutingShown = false
+        
+        // 清除之前的定时器
+        if (executingTimerId) {
+          clearTimeout(executingTimerId) 
+        }
+        
+        // 设置新的定时器，如果1秒内没有新消息，重新显示执行中状态
+        executingTimerId = setTimeout(() => {
+          if (chatRoomRef.value && eventSource && eventSource.readyState === EventSource.OPEN) {
+            chatRoomRef.value.setMessageExecuting(true)
+            isExecutingShown = true
+          }
+        }, 1000)
+      }
+      
       // 检查是否是工具调用
       if (event.data.includes('工具:') && !isToolResponse) {
         isToolResponse = true
@@ -115,15 +157,31 @@ const setupEventListeners = () => {
   }
   
   eventSource.onerror = (error) => {
+    // 清除执行中状态定时器
+    if (executingTimerId) {
+      clearTimeout(executingTimerId)
+      executingTimerId = null
+    }
+    
     closeEventSource()
     if (chatRoomRef.value) {
+      // 确保清除执行中状态
+      chatRoomRef.value.setMessageExecuting(false)
       chatRoomRef.value.completeAiMessage()
     }
   }
   
   eventSource.addEventListener('close', () => {
+    // 清除执行中状态定时器
+    if (executingTimerId) {
+      clearTimeout(executingTimerId)
+      executingTimerId = null
+    }
+    
     closeEventSource()
     if (chatRoomRef.value) {
+      // 确保清除执行中状态
+      chatRoomRef.value.setMessageExecuting(false)
       chatRoomRef.value.completeAiMessage()
     }
   })
@@ -134,6 +192,11 @@ const closeEventSource = () => {
   if (eventSource) {
     eventSource.close()
     eventSource = null
+    
+    // 通知ChatRoom组件SSE连接已关闭
+    if (chatRoomRef.value) {
+      chatRoomRef.value.setSseActive(false)
+    }
   }
 }
 
@@ -184,6 +247,14 @@ onUnmounted(() => {
 
 .app-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-content > :deep(.chat-container) {
+  height: 100%;
   display: flex;
   flex-direction: column;
 }

@@ -40,6 +40,9 @@ public class ToolCallAgent extends ReActAgent{
     //  可调用的MCP服务
     private ToolCallbackProvider toolCallbackProvider;
 
+    // 思考文本
+    private String thinkText;
+
     // 禁用工具自动调用，手动管理上下文
     private ChatOptions chatOptions;
 
@@ -82,6 +85,8 @@ public class ToolCallAgent extends ReActAgent{
             List<AssistantMessage.ToolCall> toolCalls = assistantMessage.getToolCalls();
             log.info(getName() + "思考结果: " + text);
             log.info(getName() + "决定调用"+ toolCalls.size() + "个工具");
+            // 记录思考结果
+            thinkText = text;
             String toolCallInfo = toolCalls.stream()
                     .map(toolCall -> String.format("工具名称: %s, 参数: %s", toolCall.name(), toolCall.arguments()))
                     .collect(Collectors.joining("\n"));
@@ -128,8 +133,7 @@ public class ToolCallAgent extends ReActAgent{
         if(terminateToolCalled) {
             setAgentState(AgentState.FINISHED);
         }
-        return toolResponseMessage.getResponses().stream()
-                .map(ToolResponseMessage.ToolResponse::responseData)
-                .collect(Collectors.joining(""));
+
+        return thinkText + result;
     }
 }
