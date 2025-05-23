@@ -1,17 +1,27 @@
 <template>
   <div class="love-app-container">
-    <div class="return-btn">
-      <el-button type="primary" size="small" @click="goBack">
-        <el-icon><arrow-left /></el-icon> 返回主页
-      </el-button>
+    <div class="app-header">
+      <div class="container d-flex justify-between align-center">
+        <div class="return-btn">
+          <el-button type="primary" size="small" @click="goBack" class="btn-with-icon">
+            <el-icon><arrow-left /></el-icon>
+            <span>返回主页</span>
+          </el-button>
+        </div>
+        <h1 class="app-title hidden-xs">AI 恋爱大师</h1>
+        <div class="header-actions"></div>
+      </div>
     </div>
-    <chat-room
-      ref="chatRoomRef"
-      title="AI 恋爱大师"
-      :showModeSelector="true"
-      @send-message="handleSendMessage"
-      @mode-change="handleModeChange"
-    />
+    
+    <div class="app-content">
+      <chat-room
+        ref="chatRoomRef"
+        title="AI 恋爱大师"
+        :showModeSelector="true"
+        @send-message="handleSendMessage"
+        @mode-change="handleModeChange"
+      />
+    </div>
   </div>
 </template>
 
@@ -63,7 +73,6 @@ const handleSendMessage = (message: string) => {
     
     setupEventListeners()
   } catch (error) {
-    console.error('创建SSE连接失败:', error)
     ElMessage.error('连接失败，请稍后再试')
     if (chatRoomRef.value) {
       chatRoomRef.value.setLoading(false)
@@ -106,7 +115,6 @@ const setupEventListeners = () => {
   }
   
   eventSource.onerror = (error) => {
-    console.error('SSE连接错误:', error)
     closeEventSource()
     if (chatRoomRef.value) {
       chatRoomRef.value.completeAiMessage()
@@ -143,16 +151,51 @@ onUnmounted(() => {
 
 <style scoped>
 .love-app-container {
-  height: 100vh;
-  padding: 20px;
-  background-color: #f5f7fa;
-  position: relative;
+  min-height: var(--app-height);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
 }
 
-.return-btn {
-  position: absolute;
-  top: 30px;
-  left: 30px;
+.app-header {
+  height: var(--header-height);
+  background-color: var(--bg-secondary);
+  box-shadow: var(--box-shadow-light);
+  padding: 0 var(--spacing-md);
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
   z-index: 10;
+}
+
+.app-title {
+  font-size: var(--font-size-lg);
+  color: var(--primary-color);
+  margin: 0;
+  text-align: center;
+}
+
+.btn-with-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.app-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    height: auto;
+    padding: var(--spacing-sm);
+  }
+  
+  .btn-with-icon span {
+    display: none;
+  }
 }
 </style> 

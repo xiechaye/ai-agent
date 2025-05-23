@@ -3,6 +3,7 @@ package cn.edu.xmu.aiagent.tools;
 import java.io.File;
 import cn.hutool.http.HttpUtil;
 import cn.edu.xmu.aiagent.utils.OssUtils;
+import com.esotericsoftware.minlog.Log;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -12,6 +13,7 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.layout.element.Image;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import cn.hutool.http.HttpRequest;
@@ -30,6 +32,7 @@ import java.util.regex.Pattern;
  *
  * @author Suave
  */
+@Slf4j
 public class PDFGenerationTool {
 
     @Tool(description = "Generate a PDF document from plain text with image URLs (avoiding Markdown syntax). Converts content to PDF and uploads to OSS storage. Returns accessible URL for the generated PDF. Ideal for creating reports, plans, or documents with embedded images. For images, use full HTTP URLs instead of placeholders.", returnDirect = true)
@@ -69,7 +72,6 @@ public class PDFGenerationTool {
                     // 插入图片
                     String imageUrl = matcher.group(1);
                     try {
-                        System.out.println("尝试加载图片: " + imageUrl);
                         
                         // 创建临时文件
                         File tempFile = File.createTempFile("pdf_img_", ".tmp");
@@ -95,7 +97,6 @@ public class PDFGenerationTool {
                             if (response.isOk()) {
                                 // 保存响应内容到临时文件
                                 FileUtil.writeBytes(response.bodyBytes(), tempFile);
-                                System.out.println("图片下载成功: " + tempFile.getAbsolutePath() + " (大小: " + tempFile.length() + " 字节)");
                                 
                                 // 从临时文件加载图片
                                 ImageData data = ImageDataFactory.create(tempFile.getAbsolutePath());
@@ -107,12 +108,12 @@ public class PDFGenerationTool {
                                 
                                 // 添加图片到文档
                                 document.add(img);
-                                System.out.println("图片添加到PDF成功: " + imageUrl);
+                                log.info("图片添加到PDF成功: " + imageUrl);
                             } else {
                                 throw new IOException("HTTP请求失败，状态码: " + response.getStatus());
                             }
                         } catch (Exception ex) {
-                            System.out.println("下载或处理图片失败: " + ex.getMessage());
+                            Log.error("下载或处理图片失败: " + ex.getMessage());
                             // 图片加载失败时不添加任何内容到PDF
                         } finally {
                             // 确保临时文件被删除
@@ -121,7 +122,7 @@ public class PDFGenerationTool {
                             }
                         }
                     } catch (Exception e) {
-                        System.out.println("图片处理异常: " + e.getMessage());
+                        log.error("图片处理异常: " + e.getMessage());
                         // 图片加载失败时不添加任何内容到PDF
                     }
                     

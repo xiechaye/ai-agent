@@ -3,26 +3,42 @@
     <div class="chat-header">
       <h2>{{ title }}</h2>
       <div v-if="showModeSelector" class="mode-selector">
-        <el-radio-group v-model="currentMode" @change="handleModeChange">
-          <el-radio-button label="basic">基础模式</el-radio-button>
-          <el-radio-button label="rag">知识库模式</el-radio-button>
-          <el-radio-button label="tool">工具模式</el-radio-button>
+        <el-radio-group v-model="currentMode" @change="handleModeChange" size="small">
+          <el-radio-button value="basic">基础模式</el-radio-button>
+          <el-radio-button value="rag">知识库模式</el-radio-button>
+          <el-radio-button value="tool">工具模式</el-radio-button>
         </el-radio-group>
       </div>
     </div>
+    
     <div class="messages-container" ref="messagesContainer">
       <div v-for="msg in messages" :key="msg.id" :class="['message', msg.role === 'user' ? 'user-message' : 'ai-message']">
+        <div class="message-avatar" v-if="msg.role === 'ai'">
+          <el-icon><ChatDotRound /></el-icon>
+        </div>
         <div class="message-content">
-          <p>{{ msg.content }}</p>
+          <div class="message-bubble">
+            <p>{{ msg.content }}</p>
+          </div>
           <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
         </div>
+        <div class="message-avatar user-avatar" v-if="msg.role === 'user'">
+          <el-icon><User /></el-icon>
+        </div>
       </div>
+      
       <div v-if="loading" class="message ai-message">
+        <div class="message-avatar">
+          <el-icon><ChatDotRound /></el-icon>
+        </div>
         <div class="message-content">
-          <p class="typing">AI正在输入中...</p>
+          <div class="message-bubble">
+            <p class="typing">AI正在输入中</p>
+          </div>
         </div>
       </div>
     </div>
+    
     <div class="input-container">
       <el-input
         v-model="inputMessage"
@@ -30,10 +46,18 @@
         type="textarea"
         :rows="2"
         :disabled="loading"
-        @keyup.enter="sendMessage"
+        @keyup.enter.exact.prevent="sendMessage"
+        class="chat-input"
       />
-      <el-button type="primary" :disabled="!inputMessage.trim() || loading" @click="sendMessage">
-        发送
+      <el-button 
+        type="primary" 
+        :disabled="!inputMessage.trim() || loading" 
+        @click="sendMessage"
+        class="send-button"
+        round
+      >
+        <el-icon class="send-icon"><Position /></el-icon>
+        <span class="send-text">发送</span>
       </el-button>
     </div>
   </div>
@@ -44,6 +68,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ChatMessage, ChatRole, LoveAppMode } from '../types/chat'
 import { ElMessage } from 'element-plus'
 import { v4 as uuidv4 } from 'uuid'
+import { ChatDotRound, User, Position } from '@element-plus/icons-vue'
 
 const props = defineProps({
   title: {
@@ -329,92 +354,140 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-width: 800px;
+  max-width: 90%;
+  width: 900px;
   margin: 0 auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  background-color: #f9f9f9;
+  border-radius: var(--border-radius-medium);
+  box-shadow: var(--box-shadow);
+  background-color: var(--bg-secondary);
+  overflow: hidden;
 }
 
 .chat-header {
-  padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #ffffff;
-  border-radius: 8px 8px 0 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-light);
+  background-color: var(--primary-color);
+  color: white;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .chat-header h2 {
-  margin: 0 0 10px 0;
-  color: #333;
+  margin: 0 0 var(--spacing-sm) 0;
+  color: white;
+  font-weight: 500;
 }
 
 .mode-selector {
-  margin-top: 10px;
+  margin-top: var(--spacing-sm);
 }
 
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: var(--spacing-lg);
+  background-color: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 .message {
-  margin-bottom: 16px;
   display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  animation: fadeIn 0.3s ease;
 }
 
 .user-message {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
+  align-self: flex-end;
 }
 
 .ai-message {
-  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.user-avatar {
+  background-color: #e6f7ff;
+  color: #1890ff;
 }
 
 .message-content {
-  max-width: 70%;
-  padding: 12px;
-  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  max-width: 80%;
+}
+
+.message-bubble {
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-large);
   position: relative;
-}
-
-.user-message .message-content {
-  background-color: #e1f3ff;
-}
-
-.ai-message .message-content {
-  background-color: #ffffff;
-}
-
-.message-content p {
-  margin: 0;
   word-break: break-word;
+}
+
+.user-message .message-bubble {
+  background-color: #e6f7ff;
+  border-top-right-radius: 4px;
+}
+
+.ai-message .message-bubble {
+  background-color: white;
+  border-top-left-radius: 4px;
+}
+
+.message-bubble p {
+  margin: 0;
   white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.user-message .message-bubble p {
+  color: #1890ff;
+}
+
+.ai-message .message-bubble p {
+  color: var(--text-primary);
 }
 
 .message-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-secondary);
   margin-top: 4px;
-  display: block;
-  text-align: right;
+  align-self: flex-end;
 }
 
 .input-container {
-  padding: 16px;
-  border-top: 1px solid #e0e0e0;
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border-light);
   display: flex;
-  align-items: center;
-  background-color: #ffffff;
-  border-radius: 0 0 8px 8px;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+  background-color: white;
 }
 
-.input-container .el-input {
+.chat-input {
   flex: 1;
-  margin-right: 12px;
+}
+
+.send-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 
 .typing {
@@ -434,5 +507,58 @@ onMounted(() => {
   0% { content: '.'; }
   33% { content: '..'; }
   66% { content: '...'; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 响应式样式 */
+@media (max-width: 992px) {
+  .chat-container {
+    max-width: 95%;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-container {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .messages-container {
+    padding: var(--spacing-md);
+  }
+  
+  .message-content {
+    max-width: 90%;
+  }
+  
+  .send-text {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-header h2 {
+    font-size: var(--font-size-lg);
+  }
+  
+  .mode-selector {
+    transform: scale(0.9);
+  }
+  
+  .message-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .message-bubble {
+    padding: var(--spacing-sm);
+  }
 }
 </style> 

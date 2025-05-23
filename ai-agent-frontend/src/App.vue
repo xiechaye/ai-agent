@@ -1,11 +1,62 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
+
+// 在移动设备上调整视口高度，解决100vh问题
+onMounted(() => {
+  const setAppHeight = () => {
+    document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+  };
+  
+  window.addEventListener('resize', setAppHeight);
+  setAppHeight();
+  
+  return () => window.removeEventListener('resize', setAppHeight);
+});
 </script>
 
 <template>
-  <router-view />
+  <div class="app-container">
+    <main class="main-content">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </main>
+  </div>
 </template>
 
-<style scoped>
+<style>
+:root {
+  --app-height: 100vh;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--app-height);
+  width: 100%;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
