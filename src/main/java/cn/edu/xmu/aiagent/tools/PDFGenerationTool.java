@@ -35,7 +35,7 @@ public class PDFGenerationTool {
     @Tool(description = "Generate a PDF document from plain text with image URLs (avoiding Markdown syntax). Converts content to PDF and uploads to OSS storage. Returns accessible URL for the generated PDF. Ideal for creating reports, plans, or documents with embedded images. For images, use full HTTP URLs instead of placeholders.", returnDirect = true)
     public String generatePDF(
             @ToolParam(description = "Name of the file to save the generated PDF") String fileName,
-            @ToolParam(description = "Content to be included in the PDF") String content) {
+            @ToolParam(description = "Content to be included in the PDF. Use plain text for written content. For images, include them using Markdown image syntax ![description](URL) where URL must be a valid and accessible web address (http/https). Example: 'Here is my report. ![Company Logo](https://example.com/logo.png) The data shows...'") String content) {
 
         // 文件名简单合法性处理
         fileName = fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
