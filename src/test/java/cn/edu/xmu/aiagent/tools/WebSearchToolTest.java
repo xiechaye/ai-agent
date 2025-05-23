@@ -15,7 +15,8 @@ class WebSearchToolTest {
     @Test
     void searchWeb() {
         String query = "恋爱攻略";
-        String content = new WebSearchTool(apiKey).searchWeb(query);
+        String location = "Fujian,China";
+        String content = new WebSearchTool(apiKey).searchWeb(query, location);
         Assertions.assertNotNull(content);
     }
 }

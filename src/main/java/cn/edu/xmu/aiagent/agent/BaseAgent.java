@@ -115,7 +115,12 @@ public abstract class BaseAgent {
             }
 
             this.cleanup();
-            sseEmitter.complete();
+            try {
+                sseEmitter.send("[DONE]");
+                sseEmitter.complete();
+            } catch (IOException e) {
+                sseEmitter.completeWithError(e);
+            }
             log.info("Sse connection completed");
         });
 

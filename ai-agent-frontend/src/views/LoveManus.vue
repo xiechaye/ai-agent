@@ -1,5 +1,10 @@
 <template>
   <div class="love-manus-container">
+    <div class="return-btn">
+      <el-button type="primary" size="small" @click="goBack">
+        <el-icon><arrow-left /></el-icon> 返回主页
+      </el-button>
+    </div>
     <chat-room
       ref="chatRoomRef"
       title="AI 超级智能体"
@@ -13,34 +18,80 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import ChatRoom from '../components/ChatRoom.vue'
 import api from '../api'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { ArrowLeft } from '@element-plus/icons-vue'
 
+const router = useRouter()
 const chatRoomRef = ref<InstanceType<typeof ChatRoom> | null>(null)
 let eventSource: EventSource | null = null
 let currentResponse = ''
+let isToolResponse = false
+let lastUserInput = ''
+let fullResponse = '' // 用于存储完整的响应内容
+
+// 返回主页
+const goBack = () => {
+  router.push('/')
+}
 
 // 发送消息并处理SSE连接
 const handleSendMessage = (message: string) => {
   if (!message.trim()) return
   
+  // 存储用户输入
+  lastUserInput = message.trim()
+  
   // 关闭之前的连接
   closeEventSource()
   currentResponse = ''
+  isToolResponse = false
+  fullResponse = '' // 重置完整响应
   
+  // 设置加载状态
+  if (chatRoomRef.value) {
+    chatRoomRef.value.setLoading(true)
+  }
+  
+  connectSSE(lastUserInput)
+}
+
+// 建立SSE连接
+const connectSSE = (message: string) => {
   try {
     eventSource = api.createLoveManusChatSse(message)
     setupEventListeners()
   } catch (error) {
-    console.error('创建SSE连接失败:', error)
-    ElMessage.error('连接失败，请稍后再试')
-    if (chatRoomRef.value) {
-      chatRoomRef.value.setLoading(false)
-    }
+    handleConnectionError('连接失败，请稍后再试')
+  }
+}
+
+// 处理连接错误
+const handleConnectionError = (errorMessage: string) => {
+  ElMessage.error(errorMessage)
+  if (chatRoomRef.value) {
+    chatRoomRef.value.setLoading(false)
+    chatRoomRef.value.addAiMessage(`错误: ${errorMessage}`)
   }
 }
 
 // 设置SSE事件监听器
 const setupEventListeners = () => {
   if (!eventSource) return
+  
+  // 添加SSE连接打开的处理
+  eventSource.onopen = () => {
+    // 移除控制台日志
+    
+    // 创建初始空AI消息，为打字机效果做准备
+    if (chatRoomRef.value) {
+      // 先结束加载状态，然后创建一个空消息
+      chatRoomRef.value.setLoading(false)
+      // 创建一个空消息
+      chatRoomRef.value.updateAiMessage('')
+    }
+  }
+  
+  let isFirstMessage = true
   
   eventSource.onmessage = (event) => {
     if (event.data) {
@@ -54,24 +105,34 @@ const setupEventListeners = () => {
           return
         }
         
-        // 累加响应内容
-        currentResponse += event.data
+        // 将新的响应添加到完整响应中，每个部分之间添加换行符
+        if (fullResponse) {
+          fullResponse += '\n\n' + event.data
+        } else {
+          fullResponse = event.data
+        }
         
-        // 更新聊天内容
+        // 立即更新消息
         if (chatRoomRef.value) {
-          chatRoomRef.value.updateAiMessage(currentResponse)
+          // 所有消息都使用打字机效果
+          chatRoomRef.value.updateAiMessageWithTyping(fullResponse)
+          isFirstMessage = false
         }
       } catch (e) {
-        console.error('处理SSE响应失败:', e)
+        // 移除错误日志
       }
     }
   }
   
   eventSource.onerror = (error) => {
-    console.error('SSE连接错误:', error)
+    // 移除错误日志
+    
+    // 直接关闭连接，不尝试重连
     closeEventSource()
+    
     if (chatRoomRef.value) {
       chatRoomRef.value.completeAiMessage()
+      // 不再显示错误消息
     }
   }
 }
@@ -95,5 +156,13 @@ onUnmounted(() => {
   height: 100vh;
   padding: 20px;
   background-color: #f5f7fa;
+  position: relative;
+}
+
+.return-btn {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  z-index: 10;
 }
 </style> 

@@ -122,6 +122,8 @@ public class ToolCallAgent extends ReActAgent{
         if(terminateToolCalled) {
             setAgentState(AgentState.FINISHED);
         }
-        return result;
+        return toolResponseMessage.getResponses().stream()
+                .map(ToolResponseMessage.ToolResponse::responseData)
+                .collect(Collectors.joining(""));
     }
 }

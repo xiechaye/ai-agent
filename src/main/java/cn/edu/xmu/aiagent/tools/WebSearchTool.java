@@ -28,27 +28,51 @@ public class WebSearchTool {
         this.apiKey = apiKey;
     }
 
-    @Tool(description = "Search for information from Baidu Search Engine")
+    @Tool(description = "Search for information from Bing Search Engine")
     public String searchWeb(
-            @ToolParam(description = "Search query keyword") String query) {
+            @ToolParam(description = "Search query keyword") String query,
+            @ToolParam(description = "Optional location parameter (e.g. '(Fujian,China)'") String location) {
+
         Map<String, Object> paramMap = new HashMap<>();
         paramMap.put("q", query);
         paramMap.put("api_key", apiKey);
-        paramMap.put("engine", "baidu");
+        paramMap.put("engine", "bing");
+
+        if (location != null && !location.isEmpty()) {
+            paramMap.put("location", location);
+        }
+
         try {
             String response = HttpUtil.get(SEARCH_API_URL, paramMap);
-            // 取出返回结果的前 5 条
+            System.out.println("API Response: " + response);
+
             JSONObject jsonObject = JSONUtil.parseObj(response);
-            // 提取 organic_results 部分
-            JSONArray organicResults = jsonObject.getJSONArray("organic_results");
-            List<Object> objects = organicResults.subList(0, 5);
-            // 拼接搜索结果为字符串
-            return objects.stream().map(obj -> {
-                JSONObject tmpJSONObject = (JSONObject) obj;
-                return tmpJSONObject.toString();
-            }).collect(Collectors.joining(","));
+
+            if (jsonObject.containsKey("error")) {
+                return "API Error: " + jsonObject.getStr("error");
+            }
+
+            StringBuilder results = new StringBuilder("搜索结果:\n\n");
+
+            if (jsonObject.containsKey("organic_results")) {
+                JSONArray organicResults = jsonObject.getJSONArray("organic_results");
+                int count = Math.min(organicResults.size(), 5);
+
+                for (int i = 0; i < count; i++) {
+                    JSONObject item = organicResults.getJSONObject(i);
+                    results.append(i + 1).append(". ").append(item.getStr("title", "无标题")).append("\n")
+                            .append("   来源: ").append(item.getStr("source", "未知来源")).append("\n")
+                            .append("   链接: ").append(item.getStr("link", "无链接")).append("\n")
+                            .append("   摘要: ").append(item.getStr("snippet", "无摘要")).append("\n\n");
+                }
+
+                return results.toString();
+            } else {
+                return "未找到搜索结果";
+            }
         } catch (Exception e) {
-            return "Error searching Baidu: " + e.getMessage();
+            e.printStackTrace();
+            return "搜索错误: " + e.getMessage();
         }
     }
 

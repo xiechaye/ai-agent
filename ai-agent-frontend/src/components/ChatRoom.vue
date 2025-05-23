@@ -64,6 +64,10 @@ const loading = ref(false)
 const currentMode = ref<LoveAppMode>(LoveAppMode.BASIC)
 const messagesContainer = ref<HTMLElement | null>(null)
 const currentAiMessageId = ref<string | null>(null)
+let typingTimer: NodeJS.Timeout | null = null // 用于打字机效果的计时器
+let fullText = '' // 完整的文本内容
+let displayedText = '' // 当前显示的文本内容
+let typingSpeed = 10 // 打字速度（毫秒/字符）
 
 // 格式化时间
 const formatTime = (timestamp: number) => {
@@ -89,12 +93,6 @@ const sendMessage = async () => {
   
   // 创建新的AI消息占位（空内容）
   currentAiMessageId.value = uuidv4()
-  messages.value.push({
-    id: currentAiMessageId.value,
-    role: ChatRole.AI,
-    content: '',
-    timestamp: Date.now()
-  })
   
   await nextTick()
   scrollToBottom()
@@ -104,21 +102,40 @@ const sendMessage = async () => {
 
 // 更新或添加AI消息
 const updateAiMessage = (content: string) => {
+  // 如果有正在进行的打字效果，清除它
+  if (typingTimer) {
+    clearInterval(typingTimer)
+    typingTimer = null
+  }
+  
+  // 检查是否有工具调用前缀
+  if (content.startsWith('工具:') || content.startsWith('Tools:')) {
+    // 为工具调用结果创建新消息
+    const toolMessageId = uuidv4()
+    messages.value.push({
+      id: toolMessageId,
+      role: ChatRole.AI,
+      content,
+      timestamp: Date.now()
+    })
+    nextTick(() => {
+      scrollToBottom()
+    })
+    return
+  }
+  
   // 如果已有AI消息ID，则更新现有消息
   if (currentAiMessageId.value) {
     const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
     if (index !== -1) {
       messages.value[index].content = content
+    } else {
+      // 创建新消息
+      addNewAiMessage(content)
     }
   } else {
-    // 如果没有当前AI消息ID（兼容旧逻辑），则创建新消息
-    currentAiMessageId.value = uuidv4()
-    messages.value.push({
-      id: currentAiMessageId.value,
-      role: ChatRole.AI,
-      content,
-      timestamp: Date.now()
-    })
+    // 如果没有当前AI消息ID，则创建新消息
+    addNewAiMessage(content)
   }
   
   nextTick(() => {
@@ -126,10 +143,135 @@ const updateAiMessage = (content: string) => {
   })
 }
 
+// 添加新的AI消息
+const addNewAiMessage = (content: string) => {
+  currentAiMessageId.value = uuidv4()
+  messages.value.push({
+    id: currentAiMessageId.value,
+    role: ChatRole.AI,
+    content,
+    timestamp: Date.now()
+  })
+}
+
+// 直接添加新消息而不更新现有消息或重置loading状态
+const addAiMessage = (content: string) => {
+  const messageId = uuidv4()
+  messages.value.push({
+    id: messageId,
+    role: ChatRole.AI,
+    content,
+    timestamp: Date.now()
+  })
+  
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
+
+// 更新或添加AI消息（带打字机效果）
+const updateAiMessageWithTyping = (content: string) => {
+  // 保存完整文本
+  fullText = content
+  
+  // 如果已有消息正在进行打字效果，先清除之前的计时器
+  if (typingTimer) {
+    clearInterval(typingTimer)
+    typingTimer = null
+  }
+  
+  // 如果没有当前AI消息，创建一个新的
+  if (!currentAiMessageId.value) {
+    addNewAiMessage('')
+  }
+  
+  // 查找当前消息索引
+  const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
+  if (index === -1) return
+  
+  // 获取已显示的文本长度
+  const currentText = messages.value[index].content || ''
+  
+  // 如果新内容包含当前显示的文本，则从当前位置继续打字
+  if (fullText.includes(currentText) && currentText.length > 0) {
+    displayedText = currentText
+  } else {
+    // 如果内容不匹配，则重置
+    displayedText = ''
+  }
+  
+  // 启动打字机效果
+  startTypingEffect(index)
+}
+
+// 启动打字机效果
+const startTypingEffect = (messageIndex: number) => {
+  if (messageIndex === -1 || !fullText) return
+  
+  // 如果已经显示了全部文本，不需要打字效果
+  if (displayedText === fullText) return
+  
+  // 计算还有多少字符需要显示
+  const remainingChars = fullText.length - displayedText.length
+  
+  // 根据剩余字符数调整打字速度，文本越长，速度越快
+  let adjustedSpeed = Math.max(2, Math.min(typingSpeed, 
+    remainingChars > 1000 ? 1 : // 超长文本 1ms/字符
+    remainingChars > 500 ? 2 : // 长文本 2ms/字符
+    remainingChars > 200 ? 3 : // 中等文本 3ms/字符
+    5)) // 短文本 5ms/字符
+  
+  // 计算每次应添加的字符数
+  let charsToAddEachTime = remainingChars > 1000 ? 10 :
+                           remainingChars > 500 ? 5 :
+                           remainingChars > 200 ? 3 : 1
+  
+  typingTimer = setInterval(() => {
+    // 如果已经完成了打字，清除计时器
+    if (displayedText.length >= fullText.length) {
+      if (typingTimer) {
+        clearInterval(typingTimer)
+        typingTimer = null
+      }
+      return
+    }
+    
+    // 添加多个字符，而不是一个，以提高性能和流畅度
+    const newLength = Math.min(displayedText.length + charsToAddEachTime, fullText.length)
+    displayedText = fullText.substring(0, newLength)
+    
+    // 更新消息
+    messages.value[messageIndex].content = displayedText
+    
+    // 滚动到底部 (只在必要时调用，避免频繁渲染)
+    if (newLength % 30 === 0 || newLength === fullText.length) {
+      nextTick(() => {
+        scrollToBottom()
+      })
+    }
+  }, adjustedSpeed)
+}
+
 // 完成AI消息响应
 const completeAiMessage = () => {
+  // 清除打字机效果的计时器
+  if (typingTimer) {
+    clearInterval(typingTimer)
+    typingTimer = null
+  }
+  
+  // 如果还有未完成的打字内容，立即显示完整内容
+  if (currentAiMessageId.value && fullText) {
+    const index = messages.value.findIndex(msg => msg.id === currentAiMessageId.value)
+    if (index !== -1) {
+      messages.value[index].content = fullText
+    }
+  }
+  
   currentAiMessageId.value = null
   loading.value = false
+  fullText = ''
+  displayedText = ''
 }
 
 // 滚动到底部
@@ -147,11 +289,20 @@ const handleModeChange = (mode: LoveAppMode) => {
 // 暴露方法给父组件
 defineExpose({
   updateAiMessage,
+  updateAiMessageWithTyping,
+  addAiMessage,
   completeAiMessage,
   setLoading: (value: boolean) => {
     loading.value = value
     if (!value) {
       currentAiMessageId.value = null
+      // 清除打字机效果
+      if (typingTimer) {
+        clearInterval(typingTimer)
+        typingTimer = null
+      }
+      fullText = ''
+      displayedText = ''
     }
   }
 })

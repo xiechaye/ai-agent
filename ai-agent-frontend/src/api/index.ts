@@ -42,7 +42,13 @@ export default {
    * @returns EventSource实例
    */
   createLoveManusChatSse(message: string): EventSource {
-    const url = `${BASE_URL}/love_manus/chat/sse?message=${encodeURIComponent(message)}`
-    return new EventSource(url)
+    // 双重编码防止URL解析问题
+    const encodedMessage = encodeURIComponent(message)
+    const url = `${BASE_URL}/love_manus/chat/sse?message=${encodedMessage}`
+    
+    // 创建EventSource对象，设置withCredentials为true以便在跨域请求中发送cookies
+    const eventSource = new EventSource(url, { withCredentials: true })
+    
+    return eventSource
   }
 } 
