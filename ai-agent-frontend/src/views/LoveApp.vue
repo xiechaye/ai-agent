@@ -2,31 +2,31 @@
   <main class="love-app-container">
     <header class="app-header">
       <div class="container d-flex justify-between align-center">
-        <div class="return-btn">
+    <div class="return-btn">
           <el-button type="primary" size="small" @click="goBack" class="btn-with-icon">
             <el-icon><arrow-left /></el-icon>
             <span>返回主页</span>
-          </el-button>
-        </div>
+      </el-button>
+    </div>
         <h1 class="app-title hidden-xs">AI 恋爱大师</h1>
         <div class="header-actions"></div>
       </div>
     </header>
     
     <section class="app-content">
-      <chat-room
-        ref="chatRoomRef"
-        title="AI 恋爱大师"
-        :showModeSelector="true"
-        @send-message="handleSendMessage"
-        @mode-change="handleModeChange"
-      />
+    <chat-room
+      ref="chatRoomRef"
+      title="AI 恋爱大师"
+      :showModeSelector="true"
+      @send-message="handleSendMessage"
+      @mode-change="handleModeChange"
+    />
     </section>
   </main>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import ChatRoom from '../components/ChatRoom.vue'
 import api from '../api'
 import { LoveAppMode } from '../types/chat'
@@ -93,7 +93,7 @@ const handleSendMessage = (message: string) => {
 const setupEventListeners = () => {
   if (!eventSource) return
   
-  let executingTimerId: NodeJS.Timeout | null = null
+  let executingTimerId: ReturnType<typeof setTimeout> | null = null
   let isExecutingShown = false
   
   eventSource.onopen = () => {
@@ -156,7 +156,7 @@ const setupEventListeners = () => {
     }
   }
   
-  eventSource.onerror = (error) => {
+  eventSource.onerror = () => {
     // 清除执行中状态定时器
     if (executingTimerId) {
       clearTimeout(executingTimerId)

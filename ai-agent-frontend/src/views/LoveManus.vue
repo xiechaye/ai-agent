@@ -2,30 +2,30 @@
   <main class="love-manus-container">
     <header class="app-header">
       <div class="container d-flex justify-between align-center">
-        <div class="return-btn">
+    <div class="return-btn">
           <el-button type="primary" size="small" @click="goBack" class="btn-with-icon">
             <el-icon><arrow-left /></el-icon>
             <span>返回主页</span>
-          </el-button>
-        </div>
+      </el-button>
+    </div>
         <h1 class="app-title hidden-xs">AI 超级智能体</h1>
         <div class="header-actions"></div>
       </div>
     </header>
     
     <section class="app-content">
-      <chat-room
-        ref="chatRoomRef"
-        title="AI 超级智能体"
-        @send-message="handleSendMessage"
+    <chat-room
+      ref="chatRoomRef"
+      title="AI 超级智能体"
+      @send-message="handleSendMessage"
         @stop-generation="handleStopGeneration"
-      />
+    />
     </section>
   </main>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import ChatRoom from '../components/ChatRoom.vue'
 import api from '../api'
 import { ElMessage } from 'element-plus'
@@ -35,11 +35,9 @@ import { ArrowLeft } from '@element-plus/icons-vue'
 const router = useRouter()
 const chatRoomRef = ref<InstanceType<typeof ChatRoom> | null>(null)
 let eventSource: EventSource | null = null
-let currentResponse = ''
-let isToolResponse = false
 let lastUserInput = ''
 let fullResponse = '' // 用于存储完整的响应内容
-let inactivityTimer: NodeJS.Timeout | null = null // 添加不活跃检测定时器
+let inactivityTimer: ReturnType<typeof setTimeout> | null = null
 
 // 返回主页
 const goBack = () => {
@@ -55,8 +53,6 @@ const handleSendMessage = (message: string) => {
   
   // 关闭之前的连接
   closeEventSource()
-  currentResponse = ''
-  isToolResponse = false
   fullResponse = '' // 重置完整响应
   
   // 设置加载状态
@@ -82,8 +78,8 @@ const connectSSE = (message: string) => {
 // 处理连接错误
 const handleConnectionError = (errorMessage: string) => {
   ElMessage.error(errorMessage)
-  if (chatRoomRef.value) {
-    chatRoomRef.value.setLoading(false)
+    if (chatRoomRef.value) {
+      chatRoomRef.value.setLoading(false)
     chatRoomRef.value.addAiMessage(`错误: ${errorMessage}`)
   }
 }
@@ -119,7 +115,7 @@ const setupEventListeners = () => {
     }
   }
   
-  let isFirstMessage = true
+  // let isFirstMessage = true
   let lastActivityTime = Date.now()
   let isExecutingShown = true  // 默认开始就显示执行中状态
   
@@ -155,7 +151,7 @@ const setupEventListeners = () => {
   startInactivityCheck()
   
   // 处理接收到的消息
-  let executingTimerId: NodeJS.Timeout | null = null
+  let executingTimerId: ReturnType<typeof setTimeout> | null = null
   
   eventSource.onmessage = (event) => {
     // 更新最后活动时间
@@ -213,7 +209,6 @@ const setupEventListeners = () => {
         if (chatRoomRef.value) {
           // 所有消息都使用打字机效果
           chatRoomRef.value.updateAiMessageWithTyping(fullResponse)
-          isFirstMessage = false
         }
       } catch (e) {
         // 错误处理
@@ -221,7 +216,7 @@ const setupEventListeners = () => {
     }
   }
   
-  eventSource.onerror = (error) => {
+  eventSource.onerror = () => {
     // 清除定时器
     if (inactivityTimer) {
       clearTimeout(inactivityTimer)

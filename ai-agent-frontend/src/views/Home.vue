@@ -82,11 +82,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { ChatLineRound, Connection } from '@element-plus/icons-vue'
-
-const router = useRouter()
 </script>
 
 <style scoped>

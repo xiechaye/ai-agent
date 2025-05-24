@@ -13,11 +13,11 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         // 覆盖所有请求
-        registry.addMapping("/**")
+        registry.addMapping("/**")  // 这里应该是路径模式，不是URL
                 // 允许发送 Cookie
                 .allowCredentials(true)
-                // 放行哪些域名（必须用 patterns，否则 * 会和 allowCredentials 冲突）
-                .allowedOriginPatterns("*")
+                // 允许特定域名访问，这是你的前端地址
+                .allowedOriginPatterns("http://120.26.19.193", "http://localhost:5173") // 或者使用 allowedOriginPatterns
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("*");

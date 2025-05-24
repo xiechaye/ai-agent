@@ -89,13 +89,15 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
-import { ChatMessage, ChatRole, LoveAppMode } from '../types/chat'
+import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
+import type { ChatMessage } from '../types/chat'
+import { ChatRole, LoveAppMode } from '../types/chat'
 import { ElMessage } from 'element-plus'
 import { v4 as uuidv4 } from 'uuid'
-import { ChatDotRound, User, Position, Download, Loading, Close } from '@element-plus/icons-vue'
+import { User, Position, Download, Loading, Close } from '@element-plus/icons-vue'
 
-const props = defineProps({
+// 使用defineProps代替const props
+defineProps({
   title: {
     type: String,
     default: '聊天室'
@@ -115,7 +117,7 @@ const isGenerating = ref(false) // 控制是否正在生成消息
 const currentMode = ref<LoveAppMode>(LoveAppMode.BASIC)
 const messagesContainer = ref<HTMLElement | null>(null)
 const currentAiMessageId = ref<string | null>(null)
-let typingTimer: NodeJS.Timeout | null = null // 用于打字机效果的计时器
+let typingTimer: ReturnType<typeof setTimeout> | null = null // 用于打字机效果的计时器
 let fullText = '' // 完整的文本内容
 let displayedText = '' // 当前显示的文本内容
 let typingSpeed = 10 // 打字速度（毫秒/字符）
@@ -141,7 +143,7 @@ const stopGeneration = () => {
   
   // 停止当前的打字效果
   if (typingTimer) {
-    clearInterval(typingTimer)
+    clearTimeout(typingTimer)
     typingTimer = null
   }
   
@@ -192,7 +194,7 @@ const sendMessage = async () => {
 const updateAiMessage = (content: string) => {
   // 如果有正在进行的打字效果，清除它
   if (typingTimer) {
-    clearInterval(typingTimer)
+    clearTimeout(typingTimer)
     typingTimer = null
   }
   
@@ -320,7 +322,7 @@ const updateAiMessageWithTyping = (content: string, useTypingEffect: boolean = t
   
   // 如果已有消息正在进行打字效果，先清除之前的计时器
   if (typingTimer) {
-    clearInterval(typingTimer)
+    clearTimeout(typingTimer)
     typingTimer = null
   }
   
@@ -384,7 +386,7 @@ const setMessageExecuting = (isExecuting: boolean) => {
 const completeAiMessage = () => {
   // 清除打字机效果的计时器
   if (typingTimer) {
-    clearInterval(typingTimer)
+    clearTimeout(typingTimer)
     typingTimer = null
   }
   
@@ -442,18 +444,16 @@ const startTypingEffect = (messageIndex: number) => {
                            remainingChars > 500 ? 5 :
                            remainingChars > 200 ? 3 : 1
   
-  typingTimer = setInterval(() => {
-    // 如果已经完成了打字，清除计时器
+  // 使用递归函数实现重复调用效果
+  const typeNextChars = () => {
+    // 如果已经完成了打字，清除状态
     if (displayedText.length >= fullText.length) {
-      if (typingTimer) {
-        clearInterval(typingTimer)
-        typingTimer = null
-        
-        // 检查是否有执行中的消息，如果没有则重置生成状态
-        const hasExecutingMessages = messages.value.some(msg => msg.isExecuting === true)
-        if (!hasExecutingMessages) {
-          isGenerating.value = false
-        }
+      typingTimer = null
+      
+      // 检查是否有执行中的消息，如果没有则重置生成状态
+      const hasExecutingMessages = messages.value.some(msg => msg.isExecuting === true)
+      if (!hasExecutingMessages) {
+        isGenerating.value = false
       }
       return
     }
@@ -465,9 +465,15 @@ const startTypingEffect = (messageIndex: number) => {
     // 更新消息
     messages.value[messageIndex].content = displayedText
     
-    // 每次文本更新后立即滚动到底部，不使用nextTick以确保即时滚动效果
+    // 每次文本更新后立即滚动到底部
     scrollToBottom()
-  }, adjustedSpeed)
+    
+    // 设置下一次调用
+    typingTimer = setTimeout(typeNextChars, adjustedSpeed)
+  }
+  
+  // 开始打字效果
+  typeNextChars()
 }
 
 // 处理模式切换
@@ -489,7 +495,7 @@ defineExpose({
       
       // 清除打字机效果
       if (typingTimer) {
-        clearInterval(typingTimer)
+        clearTimeout(typingTimer)
         typingTimer = null
       }
       fullText = ''
@@ -514,7 +520,7 @@ watch(
   messages,
   () => {
     // 立即滚动，不使用nextTick
-    scrollToBottom()
+      scrollToBottom()
   },
   { deep: true }
 )
@@ -528,7 +534,7 @@ onMounted(() => {
 onUnmounted(() => {
   // 确保清除所有计时器
   if (typingTimer) {
-    clearInterval(typingTimer)
+    clearTimeout(typingTimer)
     typingTimer = null
   }
 })
