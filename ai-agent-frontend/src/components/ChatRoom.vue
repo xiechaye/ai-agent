@@ -18,9 +18,9 @@
         </div>
         <div class="message-content">
           <div class="message-bubble">
-            <p>{{ msg.content }}</p>
-            <!-- 如果消息包含文件链接，显示下载按钮 -->
-            <div v-if="msg.fileLink" class="file-download">
+          <p>{{ msg.content }}</p>
+            <!-- 如果消息包含PDF或其他文档文件链接，显示下载按钮 -->
+            <div v-if="msg.fileLink && isDocumentFile(msg.fileLink)" class="file-download">
               <el-button type="primary" size="small" @click="downloadFile(msg.fileLink)" class="download-btn">
                 <el-icon><Download /></el-icon>
                 <span>下载文件</span>
@@ -121,14 +121,17 @@ let displayedText = '' // 当前显示的文本内容
 let typingSpeed = 10 // 打字速度（毫秒/字符）
 const sseActive = ref(false)
 
-// 添加新的状态变量追踪滚动状态
-const userScrolled = ref(false)
-const isNearBottom = ref(true)
-
 // 格式化时间
 const formatTime = (timestamp: number) => {
   const date = new Date(timestamp)
   return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
+
+// 检查是否为文档类型文件
+const isDocumentFile = (url: string): boolean => {
+  // 检查URL是否以常见文档格式结尾
+  const docExtensions = ['.pdf', '.docx', '.xlsx', '.pptx', '.zip', '.rar']
+  return docExtensions.some(ext => url.toLowerCase().endsWith(ext))
 }
 
 // 停止消息生成
@@ -271,7 +274,7 @@ const addAiMessage = (content: string) => {
 // 提取消息中的文件下载链接
 const extractFileLink = (content: string): string | undefined => {
   // 匹配OSS上传成功消息，例如：PDF generated and uploaded successfully to OSS: https://...
-  const ossRegex = /uploaded successfully to OSS:\s*(https:\/\/.*\.(?:pdf|docx|xlsx|pptx|zip|rar|jpg|png|gif))/i
+  const ossRegex = /uploaded successfully to OSS:\s*(https:\/\/.*\.(?:pdf|docx|xlsx|pptx|zip|rar))/i
   const ossMatch = content.match(ossRegex)
   
   if (ossMatch && ossMatch[1]) {
@@ -279,7 +282,7 @@ const extractFileLink = (content: string): string | undefined => {
   }
   
   // 匹配普通URL，限定文件类型为常见文档和压缩格式
-  const urlRegex = /(https?:\/\/[^\s]+\.(?:pdf|docx|xlsx|pptx|zip|rar|jpg|png|gif))/gi
+  const urlRegex = /(https?:\/\/[^\s]+\.(?:pdf|docx|xlsx|pptx|zip|rar))/gi
   const urlMatch = content.match(urlRegex)
   
   if (urlMatch && urlMatch[0]) {
@@ -324,8 +327,6 @@ const updateAiMessageWithTyping = (content: string, useTypingEffect: boolean = t
   // 如果没有当前AI消息，创建一个新的
   if (!currentAiMessageId.value) {
     addNewAiMessage('')
-    // 新消息创建时，重置用户滚动状态，确保新消息可见
-    userScrolled.value = false
   }
   
   // 查找当前消息索引
@@ -408,6 +409,14 @@ const completeAiMessage = () => {
   displayedText = ''
 }
 
+// 滚动到底部 - 始终滚动到底部，不考虑用户滚动行为
+const scrollToBottom = () => {
+  if (messagesContainer.value) {
+    // 直接设置scrollTop为scrollHeight，确保滚动到最底部
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+
 // 启动打字机效果
 const startTypingEffect = (messageIndex: number) => {
   if (messageIndex === -1 || !fullText) return
@@ -456,42 +465,9 @@ const startTypingEffect = (messageIndex: number) => {
     // 更新消息
     messages.value[messageIndex].content = displayedText
     
-    // 滚动到底部 (只在必要时调用，避免频繁渲染)
-    if (newLength % 30 === 0 || newLength === fullText.length) {
-      nextTick(() => {
-        scrollToBottom()
-      })
-    }
+    // 每次文本更新后立即滚动到底部，不使用nextTick以确保即时滚动效果
+    scrollToBottom()
   }, adjustedSpeed)
-}
-
-// 监听滚动事件
-const handleScroll = () => {
-  if (!messagesContainer.value) return
-  
-  const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
-  // 判断是否接近底部（距离底部20px以内）
-  const bottom = scrollHeight - scrollTop - clientHeight < 20
-  
-  // 如果用户已滚动且现在在底部，重置滚动状态
-  if (userScrolled.value && bottom) {
-    userScrolled.value = false
-  }
-  
-  // 更新是否接近底部状态
-  isNearBottom.value = bottom
-}
-
-// 滚动到底部 - 智能版
-const scrollToBottom = () => {
-  // 如果用户手动滚动了，且不在底部，则不自动滚动
-  if (userScrolled.value && !isNearBottom.value) {
-    return
-  }
-  
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
 }
 
 // 处理模式切换
@@ -537,43 +513,23 @@ defineExpose({
 watch(
   messages,
   () => {
-    nextTick(() => {
-      scrollToBottom()
-    })
+    // 立即滚动，不使用nextTick
+    scrollToBottom()
   },
   { deep: true }
 )
 
-// 组件挂载后设置滚动监听
+// 组件挂载后设置滚动
 onMounted(() => {
   scrollToBottom()
-  
-  // 添加滚动事件监听
-  if (messagesContainer.value) {
-    messagesContainer.value.addEventListener('scroll', handleScroll)
-    
-    // 添加滚动中检测
-    messagesContainer.value.addEventListener('touchmove', () => {
-      if (!userScrolled.value && !isNearBottom.value) {
-        userScrolled.value = true
-      }
-    })
-    
-    // 添加鼠标滚轮检测
-    messagesContainer.value.addEventListener('wheel', () => {
-      if (!userScrolled.value && !isNearBottom.value) {
-        userScrolled.value = true
-      }
-    })
-  }
 })
 
-// 组件卸载时移除滚动监听
+// 组件卸载时清理资源
 onUnmounted(() => {
-  if (messagesContainer.value) {
-    messagesContainer.value.removeEventListener('scroll', handleScroll)
-    messagesContainer.value.removeEventListener('touchmove', () => {})
-    messagesContainer.value.removeEventListener('wheel', () => {})
+  // 确保清除所有计时器
+  if (typingTimer) {
+    clearInterval(typingTimer)
+    typingTimer = null
   }
 })
 </script>
