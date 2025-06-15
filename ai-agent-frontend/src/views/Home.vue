@@ -3,10 +3,10 @@
     <div class="decor-circle decor-circle-1"></div>
     <div class="decor-circle decor-circle-2"></div>
     <div class="decor-circle decor-circle-3"></div>
-    
+
     <div class="container">
       <div class="welcome-section">
-        <h1 class="title fade-in">AI 智能体应用平台</h1>
+        <h1 class="title fade-in">恋爱顾问</h1>
         <p class="subtitle fade-in">为您提供智能、温暖、贴心的服务</p>
         <div class="divider">
           <span class="divider-line"></span>
@@ -14,7 +14,7 @@
           <span class="divider-line"></span>
         </div>
       </div>
-      
+
       <section class="card-container fade-in">
         <router-link to="/love-app" class="app-card" aria-label="进入AI恋爱大师应用">
           <article class="card">
@@ -38,7 +38,7 @@
             </footer>
           </article>
         </router-link>
-        
+
         <router-link to="/love-manus" class="app-card" aria-label="进入AI超级智能体应用">
           <article class="card">
             <div class="card-ribbon"></div>
@@ -62,7 +62,7 @@
           </article>
         </router-link>
       </section>
-      
+
       <div class="trust-indicators">
         <div class="trust-item">
           <div class="trust-icon">✓</div>
@@ -375,25 +375,25 @@ import { ChatLineRound, Connection } from '@element-plus/icons-vue'
   .home-container {
     padding: var(--spacing-lg) var(--spacing-md);
   }
-  
+
   .title {
     font-size: 2rem;
   }
-  
+
   .subtitle {
     font-size: var(--font-size-md);
   }
-  
+
   .card-container {
     flex-direction: column;
     align-items: center;
     gap: var(--spacing-lg);
   }
-  
+
   .app-card {
     width: 100%;
   }
-  
+
   .trust-indicators {
     flex-direction: column;
     align-items: center;
@@ -405,17 +405,17 @@ import { ChatLineRound, Connection } from '@element-plus/icons-vue'
   .title {
     font-size: 1.8rem;
   }
-  
+
   .card-header {
     padding: var(--spacing-md);
   }
-  
+
   .card-body, .card-footer {
     padding: var(--spacing-md);
   }
-  
+
   .divider-line {
     width: 50px;
   }
 }
-</style> 
+</style>

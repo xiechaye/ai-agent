@@ -121,7 +121,7 @@ public class ToolCallAgent extends ReActAgent{
         setMessageList(toolExecutionResult.conversationHistory());
         ToolResponseMessage toolResponseMessage = (ToolResponseMessage) CollUtil.getLast(toolExecutionResult.conversationHistory());
         String result = toolResponseMessage.getResponses().stream()
-                .map(response -> String.format("工具：%s返回结果：%s", response.name(), response.responseData()))
+                .map(response -> String.format("调用工具：%s", response.name()))
                 .collect(Collectors.joining("\n"));
         log.info(result);
 
@@ -134,6 +134,6 @@ public class ToolCallAgent extends ReActAgent{
             setAgentState(AgentState.FINISHED);
         }
 
-        return thinkText + result;
+        return thinkText;
     }
 }
